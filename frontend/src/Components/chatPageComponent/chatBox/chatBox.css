@@ -1,0 +1,139 @@
+.select_section{
+    display: grid;
+    justify-content: space-between;
+    align-items: center;
+    grid-template-columns: 45% 45%;
+    width: 95%;  
+    position: absolute;
+    bottom: 5px;
+}
+.chat_div_input input:disabled{
+    cursor: not-allowed;
+}
+
+.question-container {
+    border-radius: 8px;
+    margin: 10px 0;
+    padding: 15px;
+    transition: all 0.3s ease;
+}
+
+.active-question {
+    border: 2px solid var(--blue);
+    background-color: rgba(240, 248, 255, 0.5);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.inactive-question {
+    border: 1px solid #ccc;
+    opacity: 0.5;
+    background-color: #f5f5f5;
+    pointer-events: none;
+}
+
+.inactive-label {
+    font-size: 12px;
+    color: #888;
+    font-style: italic;
+    margin-left: 10px;
+    background-color: #eee;
+    padding: 2px 6px;
+    border-radius: 4px;
+}
+
+.hint-used-message {
+    color: #666;
+    font-style: italic;
+    padding: 8px 12px;
+    background-color: #f0f0f0;
+    border-radius: 6px;
+    border-left: 3px solid var(--orange);
+}
+
+/* Submitted question styling */
+.submitted-question {
+    background-color: #f0f8ff; /* Light blue background */
+    border: 1px solid #d1e7ff;
+}
+
+.submitted-label {
+    margin-left: 10px;
+    font-size: 12px;
+    background-color: #4caf50;
+    color: white;
+    padding: 2px 8px;
+    border-radius: 10px;
+}
+
+/* Make the question content look disabled but still readable */
+.submitted-question textarea,
+.submitted-question input,
+.submitted-question select {
+    background-color: #f9f9f9;
+    border-color: #ddd;
+    color: #666;
+}
+
+/* Disabled input styles when timer is running */
+.chat_div_input input:disabled {
+    background-color: #f9f9f9;
+    color: #999;
+    cursor: not-allowed;
+}
+
+.disabled-mic {
+    opacity: 0.5;
+    cursor: not-allowed !important;
+}
+
+/* Style for disabled select inputs */
+.select_section div[class*="control"][aria-disabled="true"] {
+    background-color: #f9f9f9;
+    border-color: #ddd;
+    cursor: not-allowed;
+}
+
+/* Style for AI messages */
+.message.ai {
+    background-color: #f0f8ff;
+    border-radius: 12px;
+    padding: 10px 15px;
+    margin: 5px 0;
+    max-width: 80%;
+    align-self: flex-start;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+/* Style for user messages */
+.message.user {
+    background-color: var(--light_blue);
+    border-radius: 12px;
+    padding: 10px 15px;
+    margin: 5px 0 5px auto;
+    max-width: 80%;
+    align-self: flex-end;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+/* Container for messages */
+.chat_messages {
+    display: flex;
+    flex-direction: column;
+    padding: 15px;
+    overflow-y: auto;
+    height: calc(100% - 120px);
+}
+
+/* Animation for ReButton appearance */
+.message-buttons {
+    animation: fadeIn 0.3s ease-in;
+}
+
+@keyframes fadeIn {
+    0% { opacity: 0; transform: translateY(10px); }
+    100% { opacity: 1; transform: translateY(0); }
+}
+
+
+
+

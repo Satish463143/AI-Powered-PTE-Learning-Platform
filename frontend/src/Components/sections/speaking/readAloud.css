@@ -1,0 +1,6 @@
+/* Hide hint button only in ReadAloud component */
+.read-aloud-answers-button .answers_button_button:first-child,
+.read-aloud-answers-button .hint-used-message {
+  display: none;
+}
+

@@ -1,0 +1,219 @@
+.footer {
+    margin-top: 50px;
+    padding: 3rem 0;
+    background: rgb(233, 233, 233);
+    color: var(--black);
+    position: relative;
+  }
+  
+  .footer__container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 1rem;
+  }
+  
+  .footer__content {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 2rem;
+  }
+  
+  @media (max-width: 768px) {
+    .footer__content {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+  
+  .footer__brand {
+    margin-bottom: 1.5rem;
+  }
+  
+  @media (min-width: 1024px) {
+    .footer__brand {
+      margin-bottom: 0;
+    }
+  }
+  
+  .footer__logo {
+    margin-bottom: 1rem;
+  }
+  .footer__logo img{
+    width: 120px;
+    height: auto;
+  }
+  
+  
+  
+  .footer__description {
+    color: var(--black);
+    font-size: 1rem;
+    margin-bottom: 1rem;
+    max-width: 25rem;
+    line-height: 1.6;
+  }
+  
+  .footer__heading {
+    font-family: 'Poppins', sans-serif;
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--black);
+    margin-bottom: 2rem;
+    position: relative;
+  }
+  
+  .footer__heading:after {
+    content: '';
+    position: absolute;
+    bottom: -0.5rem;
+    left: 0;
+    width: 2.5rem;
+    height: 0.2rem;
+    background: var(--maroon);
+    border-radius: 9999px;
+  }
+  
+  .footer__links {
+    margin-bottom: 1.5rem;
+  }
+  
+  @media (min-width: 1024px) {
+    .footer__links {
+      margin-bottom: 0;
+    }
+  }
+  
+  .footer__link-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+  
+  .footer__link-list li {
+    margin-bottom: 0.5rem;
+  }
+  
+  .footer__link-list li a {
+    color: var(--black);
+    font-size: 1rem;
+    text-decoration: none;
+    transition: color 0.3s ease, transform 0.3s ease;
+    display: inline-block;
+  }
+  
+  .footer__link-list li a:hover {
+    color: #464646;
+    transform: translateX(0.25rem);
+  }
+  
+  .footer__contact {
+    margin-bottom: 1.5rem;
+  }
+  
+  @media (min-width: 1024px) {
+    .footer__contact {
+      margin-bottom: 0;
+    }
+  }
+  
+  .footer__contact-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+  
+  .footer__contact-list li {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+    color: var(--black);
+    font-size: 1rem;
+  }
+  
+  .footer__contact-list li span {
+    flex: 1;
+  }
+  
+  .footer__icon {
+    color: var(--maroon);
+    font-size: 1.25rem;
+    min-width: 1.25rem;
+  }
+  
+  .footer__divider {
+    height: 1px;
+    background: linear-gradient(
+      to right,
+      transparent,
+      rgba(150, 150, 150, 0.3),
+      transparent
+    );
+    margin: 2rem 0;
+  }
+  
+  .footer__bottom {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1.5rem;
+    text-align: center;
+  }
+  
+  @media (min-width: 768px) {
+    .footer__bottom {
+      flex-direction: row;
+      text-align: left;
+    }
+  }
+  
+  .footer__copyright {
+    color: var(--black);
+    font-size: 0.875rem;
+  }
+  
+  .footer__social {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    gap: 1rem;
+  }
+  
+  .footer__social-link {
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: rgba(150, 150, 150, 0.1);
+    color: var(--black);
+    transition: all 0.3s ease;
+  }
+  
+  .footer__social-link:hover {
+    background: var(--maroon);
+    color: #ffffff;
+    transform: translateY(-3px);
+  }
+  
+  .footer__chat-icon {
+    position: fixed;
+    bottom: 1.5rem;
+    right: 1.5rem;
+    width: 3.5rem;
+    height: 3.5rem;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #3b82f6, #50c9c3);
+    color: #ffffff;
+    border: none;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 1.5rem;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    cursor: pointer;
+    z-index: 1000;
+  } 

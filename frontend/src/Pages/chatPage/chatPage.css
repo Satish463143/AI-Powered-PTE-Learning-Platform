@@ -1,0 +1,39 @@
+.hambergmenu{
+    position: fixed;
+    top: 41px;
+    left: 50px;
+    cursor: pointer;
+}
+.bar_1, .bar_2, .bar_3{
+    width: 25px;
+    height: 2px;
+    background-color: var(--black);
+    margin: 5px 0;
+    transition: 0.3s ease-in-out;
+}
+.bar_1_active{
+    transform: rotate(-45deg) translate(-5px, 6px);
+}
+.bar_2_active{
+    opacity: 0;
+}
+.bar_3_active{
+    transform: rotate(45deg) translate(-4px, -5px);
+}
+.chatPage_container{
+    display: grid;
+    grid-template-columns: 0px 1fr;
+    transition: 0.3s ease-in-out;
+}
+.menuBar_active{
+    grid-template-columns: 300px 1fr;
+}
+.toggle_navbar{
+    width: 100%;
+    height: 100vh;
+    background-color: var(--white);
+    overflow-y: scroll;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    border-right: 2px solid var(--black);
+}

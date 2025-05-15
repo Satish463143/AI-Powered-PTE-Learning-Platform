@@ -1,0 +1,22 @@
+.all_sections{
+    margin-top: 50px; 
+    display: flex; 
+    justify-content: space-between;      
+}
+.all_section_content{
+    max-width: 250px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+}
+.all_section_content img{
+    width: 150px !important;
+    height: 150px;
+
+}
+.all_section_content p{
+    margin-top: 10px;
+    font-size: 25px;
+    font-weight: 500;
+}

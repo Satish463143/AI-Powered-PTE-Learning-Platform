@@ -1,0 +1,55 @@
+.navbar{
+    display: grid;
+    grid-template-columns: 15% 60% 25%;
+    align-items: center;
+    justify-content: space-between;
+    padding-top: 20px;
+}
+.logo img{
+    width: 80px;
+    height: auto;
+}
+.menu {
+    width: 100%;    
+}
+.menu nav ul{
+    display: flex;
+    justify-content: space-around;
+}
+.menu nav ul li{
+    border: 1px solid var(--black);
+    border-radius: 50px;
+    width: 200px;
+    padding: 5px 0;
+    text-align: center;
+}
+.signup_box{
+    display: flex;
+    justify-content: end;
+    gap: 10px;
+    align-items: center;
+}
+.login{
+    padding: 10px 0;
+    background: var(--blue);
+    border-radius: 50px;
+    font-weight: 600;
+    color: var(--white);
+    
+}
+.signup_button{
+    width: 100px;
+    text-align: center;
+}
+.signup{
+    padding: 8px 0;
+    border-radius: 50px;
+    border: 2px solid var(--blue);
+    color: var(--blue);
+    font-weight: 600;
+}
+.divider{
+    font-size: 50px;
+    font-weight: 200;
+}
+

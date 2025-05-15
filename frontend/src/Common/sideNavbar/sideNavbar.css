@@ -1,0 +1,38 @@
+.add_new_chat{
+    margin: 35px 0 0px 110px ;    
+}
+.add_new_chat p{
+    background: var(--orange);
+    display: inline-block;
+    padding: 10px 40px;
+    border-radius: 50px;
+    font-weight: 500;
+    cursor: pointer;
+}
+.menu_items ul{
+    display: grid;
+    grid-template-columns: 45% 45%;
+    justify-content: space-around;
+}
+.menu_items ul li{
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    flex-direction: column;
+}
+.menu_items ul li p{
+    text-align: center;
+    font-size: 18px;
+    font-weight: 500;
+    color: var(--blue);
+}
+.menu_items ul li img{
+    width: 80px;
+    height: auto;
+}
+.sideNavbar h3{
+    text-align: center;
+    margin-top: 20px;
+    font-weight: 500;
+}

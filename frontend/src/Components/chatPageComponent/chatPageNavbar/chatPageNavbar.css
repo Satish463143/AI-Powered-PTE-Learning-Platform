@@ -1,0 +1,200 @@
+.sound_toggle_btn{
+    visibility: hidden;
+}
+.chatPageNavbar_sound{
+    display: flex;
+}
+.chatPageNavbar_sound p{
+    font-size: 22px;
+    font-weight: 500;
+}
+.sound_toggle_btn + label {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    color: var(--black);
+    position: relative;
+    
+}
+.sound_toggle_btn + label::before{    
+    content: '';
+    height: 25px;
+    width: 45px;
+    border-radius: 15px;
+    border: 1px solid var(--blue);
+    margin-right: 0.5em;
+    transition: 0.4s ease-in-out;
+}
+.sound_toggle_btn + label::after{
+   content: '';
+   width: 21px;
+   height: 21px;
+   border-radius: 50%;
+   background-color: var(--blue);
+   position: absolute;
+   left: 2px;
+   transition: 0.4s ease-in-out;
+}
+.sound_toggle_btn:checked + label::after{
+    transform: translateX(92%);
+    right: 2px;
+    background-color: var(--white);
+}
+.sound_toggle_btn:checked + label::before{
+    background-color: var(--blue);
+}
+.chatPageNavbar{
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.chatPageNavbar_video_tutor{
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: linear-gradient(to right, var(--blue), var(--orange));
+    border-radius: 50px;
+    width: 400px;
+    padding: 10px 20px;
+}
+.chatPageNavbar_video_tutor p{
+    font-size: 28px;
+    font-weight: 500;
+}
+.chatPageNavbar_profile_section{
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+.profile_img img{
+    width: 50px;
+}
+@media (max-width: 1450px) {
+    .chatPageNavbar_sound{
+        margin-left: 50px;
+        transition: 0.3s ease-in-out;
+    }
+    .chatPageNavbar_active{
+        margin-left: 0px;
+    }
+}
+.meter{
+    position: relative;
+}
+.meter_details{
+    visibility: hidden;
+    position: absolute;
+    top: 80px;
+    left: 0;
+    width: 100%;
+    min-width: 600px;
+    transform: translateX(-80%);
+    height: auto;
+    background-color: var(--light_blue);
+    border-radius: 30px;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    transition: 0.3s ease-in-out;
+    z-index: 11;
+}
+.meter span{
+    cursor: pointer;
+}
+.meter_details_active {
+    visibility: visible;
+}
+.score{
+    width: 100%;
+}
+.score h3, .questions h3{
+    text-align: center;
+    font-weight: 500;
+    font-size: 20px;
+
+}
+.scores_btn {
+    display: flex;
+    gap: 10px;    
+    align-items: center;
+    flex-wrap: wrap;
+    justify-content: center; 
+    margin-top: 10px;
+    margin-bottom: 10px; 
+
+}
+.scores_btn button{
+    max-width: 100px;
+    width: 100%;
+    background: var(--white);
+    border-radius: 5px;
+    text-align: center;
+    padding: 5px 0;
+    transition: 0.3s ease-in-out;
+}
+.selected , .active_tab{
+    background: var(--light_green) !important;
+    color: var(--white);
+    transition: 0.3s ease-in-out;
+}
+.meter_content p{
+    background: linear-gradient(to right, var(--blue), var(--orange));
+    border-radius: 50px;
+    padding: 15px 70px;
+    font-weight: 500;
+    font-size: 20px;
+    margin-top: 15px;
+}
+.tabs{
+    margin-top: 20px;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+}
+.tab-content{
+    justify-content: center;
+    width: 100%;
+    display: flex;
+    gap: 10px;    
+    align-items: center;
+    flex-wrap: wrap;
+    margin-top: 10px;
+}
+.tabs button{
+    background: var(--white);
+    max-width: 100px;
+    width: 100%;
+    border-radius: 5px;
+    text-align: center;
+    padding: 5px 0;
+}
+.tab-content p{
+    /* column-width :180PX; */
+    background: var(--white);
+    padding: 10px ;
+    border-radius: 5px;
+    font-size: 15px;
+    text-align: center;
+    cursor: pointer;
+}
+.content-item {
+    padding: 8px 12px;
+    margin: 4px 0;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: all 0.3s ease;
+}
+
+.content-item:hover, .scores_btn button:hover {
+    background-color: #f0f0f0;
+}
+
+.content-item.selected {
+    background-color: #e6f7ff;
+    font-weight: 500;
+}
+
+

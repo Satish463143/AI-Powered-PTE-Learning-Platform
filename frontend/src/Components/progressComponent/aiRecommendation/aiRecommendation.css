@@ -1,0 +1,41 @@
+.ai_recommendation{
+    margin-top: 50px;
+}
+.ai_recommendation_tabs{
+    width: 100%;
+    background: var(--light_blue);
+    border-radius: 10px;
+    border-radius: 40px;
+    padding: 20px 50px;
+}
+.ai_recommendation_tab{
+    display: flex;
+    gap: 30px;  
+    align-items: center;
+
+}
+.ai_recommendation_tab button{
+    background: var(--semi_blue);
+    padding: 5px 40px;
+    border-radius: 20px;
+    font-weight: 500;
+    font-size: 15px;
+    cursor: pointer;
+}
+.ai_recommendation_tabs_content{
+    height: 400px;
+    overflow-y: scroll;
+    scrollbar-width: thin;
+    scrollbar-color: var(--semi_blue) var(--light_blue);
+    width: 100%;
+    background: var(--white);
+    text-align: center;
+    margin-top: 20px;
+}
+
+@media (max-width: 1450px) {
+    .ai_recommendation{
+        margin-left: 50px;
+        transition: 0.3s ease-in-out;
+    }
+}
