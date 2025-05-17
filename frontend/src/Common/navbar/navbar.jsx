@@ -1,8 +1,15 @@
-import React from 'react'
+import React, { useState } from 'react'
 import logo from '../../../src/assets/image/logo.png'
 import { Link } from 'react-router-dom'
 import './navbar.css'
+import { useSelector } from 'react-redux'
 const Navbar = () => {
+  const loggedInUser = useSelector((state)=>state.user.loggedInUser);
+
+  console.log(loggedInUser)
+
+
+
   return (
     <div className='container'>
       <div className="navbar">
@@ -19,6 +26,7 @@ const Navbar = () => {
             </ul>
           </nav>
         </div>
+        {loggedInUser ? (
         <div className="signup_box">
           <Link to='/login'>
             <p className='login signup_button'>LOGIN</p>
@@ -27,6 +35,11 @@ const Navbar = () => {
             <p className='signup_button signup'>SIGN UP</p>
           </Link>
         </div>
+        ) : (
+          <div className="signup_box">
+            {/* <p className='login signup_button'>{loggedInUser.name}</p> */}
+          </div>
+        )}
       </div>
 
     </div>

@@ -26,7 +26,6 @@ app.use(express.urlencoded({ extended: false }));
 
 
 app.use((req, res, next) => {   
-    console.log("📦 BODY (AFTER PARSING):", JSON.stringify(req.body)); 
     next();
 });
 

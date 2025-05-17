@@ -7,10 +7,10 @@ const UserModel = require('../user/user.model');
 class AuthController {
     login = async(req,res,next)=>{
         try{
-            const {email,password} = req.body;
-            const user = await userService.getSingleUserByFilter({email:email});
+            const data = req.body;
+            const user = await userService.getSingleUserByFilter({email: data.email});
 
-            if(bcrypt.compareSync(password,user.password)){
+            if(bcrypt.compareSync(data.password,user.password)){
                 const token = jwt.sign({
                     sub:user._id,
                 },process.env.JWT_SECRET,

@@ -18,6 +18,7 @@ const login = () => {
     const [loading, setLoading] = useState(false);
     const [rememberMe, setRememberMe] = useState(false);
     const navigate = useNavigate()
+    const [loginUser] = useLoginMutation();
 
     const loginDTO = Yup.object({
         email: Yup.string().email().required(),
@@ -33,12 +34,11 @@ const login = () => {
     const login = async(data)=>{
         setLoading(true)
         try{
-          const response = await useLoginMutation(data).unwrap()
+          const response = await loginUser(data).unwrap();
           toast.success("Login successful")
           localStorage.setItem("_at", response.result.token.token)
           localStorage.setItem("_rt", response.result.token.refreshToken)
-
-          dispatch(setLoggedInUser(response.result.user))
+          dispatch(setLoggedInUser(response.result.userDetails))
           setTimeout(() => {
             navigate('/');
           }, 500); 
@@ -69,7 +69,7 @@ const login = () => {
                 control={control}
                 name="email"
                 errMsg={errors?.email?.message || null}
-                required:true
+                required={true}
             />
           </div>
           
@@ -81,7 +81,7 @@ const login = () => {
                 name="password"
                 type="password"
                 errMsg={errors?.password?.message || null}
-                required:true
+                required={true}
                 control={control}
             />
           </div>
@@ -100,7 +100,7 @@ const login = () => {
               </label>
             </div>
             
-            <Link href="/forgot-password" className="auth-page__forgot-link">
+            <Link to="/forgot-password" className="auth-page__forgot-link">
               Forgot password?
             </Link>
           </div>

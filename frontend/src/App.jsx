@@ -7,10 +7,14 @@ import SignUpPage from './Pages/signUpPage/signUpPage.jsx'
 import ChatPage from './Pages/chatPage/chatPage.jsx'
 import ProgressPage from './Pages/progressPage/progressPage.jsx'
 import MockTest from './Pages/mockTest/mockTest.jsx'
+import { ToastContainer } from 'react-toastify'
+import 'react-toastify/dist/ReactToastify.css'
+
 const App = () => {
   return (
     <>
       <Router>
+        <ToastContainer position="top-right" autoClose={3000} hideProgressBar={false} />
         <Routes>
           <Route path='/' element={<Layout/>}>
             <Route index element={<HomePage/>}/>

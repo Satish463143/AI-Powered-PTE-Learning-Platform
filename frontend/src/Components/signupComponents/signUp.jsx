@@ -19,7 +19,7 @@ const signUp = () => {
     const [createUser] = useCreateMutation();
 
     const registerDTO = Yup.object({
-        name: Yup.string().min(2).max(50).required(),
+        userName: Yup.string().min(2).max(50).required(),
         email: Yup.string().email().required(),
         password: Yup.string()
           .min(8, "Password must be at least 8 characters")
@@ -76,8 +76,8 @@ const signUp = () => {
             </label>
             <TextInputComponent
                 control={control}
-                name="name"
-                errMsg={errors?.name?.message || null}
+                name="userName"
+                errMsg={errors?.userName?.message || null}
                 required={true}
             />
           </div>

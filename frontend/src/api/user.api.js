@@ -19,7 +19,7 @@ export const UserApi = createApi({
         }),
         create:builder.mutation({
             query:(formData)=> ({
-                url: "/",
+                url: "/user",
                 body:formData,
                 method:"POST",
                 headers:()=>([

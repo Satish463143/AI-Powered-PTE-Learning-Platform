@@ -19,7 +19,7 @@ export const AuthApi = createApi({
                 body:formData,
                 method:"POST",
                 headers:()=>([
-                    {"Content-Type":"multipart/form-data"}
+                    {"Content-Type":"application/json"}
                 ])
             }),
             invalidatesTags:['Auth'],
@@ -30,7 +30,7 @@ export const AuthApi = createApi({
                 body:formData,
                 method:"POST",
                 headers:()=>([
-                    {"Content-Type":"multipart/form-data"}
+                    {"Content-Type":"application/json"}
                 ])
             }),
             invalidatesTags:['Auth'],

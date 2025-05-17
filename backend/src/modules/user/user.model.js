@@ -16,7 +16,10 @@ const userSchema =new mongoose.Schema({
         type:String,
         required:true,
     },
-   
+    subscription:{
+        type:String,
+        default:null
+    },
     token:{
         type:String,
         default:null
