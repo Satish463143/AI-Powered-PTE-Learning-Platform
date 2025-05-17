@@ -1,17 +1,22 @@
 import React, { useState } from 'react'
 import { motion } from 'framer-motion'
 import { FaGoogle, FaFacebook } from 'react-icons/fa'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as Yup from "yup";
 import { TextInputComponent } from '../../Common/form/form'
+import { useCreateMutation } from '../../api/user.api';
+import { toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 
 
 const signUp = () => {  
     const [loading, setLoading] = useState(false);
     const [agreeTerms, setAgreeTerms] = useState(false);
+    const navigate = useNavigate()
+    const [createUser] = useCreateMutation();
 
     const registerDTO = Yup.object({
         name: Yup.string().min(2).max(50).required(),
@@ -29,20 +34,28 @@ const signUp = () => {
         
       });
 
-      const {  handleSubmit, control,formState: { errors }, } = useForm({
-        resolver: yupResolver(registerDTO),
-        });
+    const { handleSubmit, control, formState: { errors }, setError } = useForm({
+      resolver: yupResolver(registerDTO),
+      });
 
-        const register = ()=>{
-            setLoading(true)
-            try{
+    const register = async(data)=>{
+        setLoading(true)
+        try{
+          await createUser(data).unwrap()
+          toast.success("Signup successful")
+          navigate('/login')
 
-            }catch(exception){
-
-            }finally{
-                setLoading(false)
-            }
+        }catch(exception){
+          if (exception.status === 400) {
+            Object.keys(exception.data.result).map((field) => {
+              setError(field, { message: exception.data.result[field] });
+            });
+          }
+          toast.error(exception.data?.message || "Signup failed")
+        }finally{
+            setLoading(false)
         }
+    }
     
 
 
@@ -65,7 +78,7 @@ const signUp = () => {
                 control={control}
                 name="name"
                 errMsg={errors?.name?.message || null}
-                required:true
+                required={true}
             />
           </div>
           
@@ -77,7 +90,7 @@ const signUp = () => {
                 control={control}
                 name="email"
                 errMsg={errors?.email?.message || null}
-                required:true
+                required={true}
             />
           </div>
           
@@ -89,7 +102,7 @@ const signUp = () => {
                     name="password"
                     type="password"
                     errMsg={errors?.password?.message || null}
-                    required:true
+                    required={true}
                     control={control}
                 />
           </div>
@@ -102,7 +115,7 @@ const signUp = () => {
                     name="confirmPassword"
                     type="password"
                     errMsg={errors?.confirmPassword?.message || null}
-                    required:true
+                    required={true}
                     control={control}
                 />
             
@@ -130,9 +143,9 @@ const signUp = () => {
             className="auth-page__submit-btn"
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
-            disabled={!agreeTerms && loading}
+            disabled={!agreeTerms || loading}
           >
-            Create Account
+            {loading ? 'Creating Account...' : 'Create Account'}
           </motion.button>
         </form>
         

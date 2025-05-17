@@ -1,39 +1,50 @@
 import React, { useState } from 'react'
 import { motion } from 'framer-motion'
 import { FaGoogle, FaFacebook } from 'react-icons/fa'
-import { Link } from 'react-router-dom'
-
+import { Link,useNavigate } from 'react-router-dom'
 import './login.css'
 import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as Yup from "yup";
 import { TextInputComponent } from '../../Common/form/form'
+import { useLoginMutation } from '../../api/auth.api'
+import { useDispatch } from 'react-redux'
+import { setLoggedInUser } from '../../reducer/userReducer'
+import { toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 const login = () => {
+    const dispatch = useDispatch()
     const [loading, setLoading] = useState(false);
     const [rememberMe, setRememberMe] = useState(false);
+    const navigate = useNavigate()
 
     const loginDTO = Yup.object({
         email: Yup.string().email().required(),
-        password: Yup.string()
-            .required()
-            .min(8, "Password must be at least 8 characters")
-            .max(16, "Password must not exceed 16 characters")
-            .matches(/[A-Z]/, "Password must contain at least one uppercase letter")
-            .matches(/[a-z]/, "Password must contain at least one lowercase letter") 
-            .matches(/[0-9]/, "Password must contain at least one number"),
+        password: Yup.string().required()
       });
     
     const {  handleSubmit, control,formState: { errors }, } = useForm({
     resolver: yupResolver(loginDTO),
     });
 
-    const login = ()=>{
+  
+
+    const login = async(data)=>{
         setLoading(true)
         try{
+          const response = await useLoginMutation(data).unwrap()
+          toast.success("Login successful")
+          localStorage.setItem("_at", response.result.token.token)
+          localStorage.setItem("_rt", response.result.token.refreshToken)
+
+          dispatch(setLoggedInUser(response.result.user))
+          setTimeout(() => {
+            navigate('/');
+          }, 500); 
 
         }catch(exception){
-
+          toast.error(exception.data?.message || "Login failed");
         }finally{
             setLoading(false)
         }
