@@ -7,7 +7,7 @@ import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as Yup from "yup";
 import { TextInputComponent } from '../../Common/form/form'
-import { useLoginMutation } from '../../api/auth.api'
+import { AuthApi, useLoginMutation } from '../../api/auth.api'
 import { useDispatch } from 'react-redux'
 import { setLoggedInUser } from '../../reducer/userReducer'
 import { toast } from "react-toastify";
@@ -39,6 +39,7 @@ const login = () => {
           localStorage.setItem("_at", response.result.token.token)
           localStorage.setItem("_rt", response.result.token.refreshToken)
           dispatch(setLoggedInUser(response.result.userDetails))
+          dispatch(AuthApi.util.invalidateTags(['Auth']));
           setTimeout(() => {
             navigate('/');
           }, 500); 

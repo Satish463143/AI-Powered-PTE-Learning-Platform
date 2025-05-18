@@ -29,7 +29,7 @@ const loginCheck = async (req, res, next) => {
         
         req.authUser = {
             _id: user._id,
-            name: user.name,
+            name: user.userName,
             email:user.email
         };
         next();

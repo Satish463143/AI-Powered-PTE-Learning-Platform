@@ -28,7 +28,7 @@ class AuthController {
                     result:{
                         userDetails:{
                             _id:user._id,
-                            name:user.userName,
+                            userName:user.userName,
                             email:user.email,
                         },
                         token:{token, refreshToken}
@@ -36,6 +36,8 @@ class AuthController {
                     message:'Login Successfully',
                     meta:null
                 })
+            }else{
+                throw {status:401,message:"Invalid email or password"}
             }
         }catch(exception){
             console.log('Error in login controller',exception);

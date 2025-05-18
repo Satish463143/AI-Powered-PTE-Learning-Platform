@@ -40,7 +40,7 @@ export const AuthApi = createApi({
                 url: "/auth/me",
                 method:"GET",
             }),
-            invalidatesTags:['Auth'],
+            providesTags: ['Auth'],
         }),
        
     })
