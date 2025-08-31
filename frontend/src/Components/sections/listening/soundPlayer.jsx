@@ -1,13 +1,14 @@
 import React, { useRef, useEffect, useState } from 'react';
-import '../sectionCss/sectionCss.css';
 
-const SoundPlayer = ({ audioFile, hideRedo = false }) => {
+
+const SoundPlayer = ({ audioFile, hideRedo = false, onAudioEnd, autoPlay = false }) => {
   const audioRef = useRef(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
   const [duration, setDuration] = useState(0);
   const [redoUsed, setRedoUsed] = useState(false);
   const [playCount, setPlayCount] = useState(0);
+  const [hasAutoPlayed, setHasAutoPlayed] = useState(false);
   const maxPlays = 2; // Maximum number of times the audio can be played
   
   // Set up the audio source whenever it changes
@@ -20,6 +21,7 @@ const SoundPlayer = ({ audioFile, hideRedo = false }) => {
     setProgress(0);
     setPlayCount(0);
     setRedoUsed(false);
+    setHasAutoPlayed(false);
     
     try {
       // Set the source and load the audio
@@ -30,6 +32,35 @@ const SoundPlayer = ({ audioFile, hideRedo = false }) => {
       console.error("Error setting audio source:", error);
     }
   }, [audioFile]);
+
+  // Auto-play when audio is loaded and autoPlay is true
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio || !audioFile || !autoPlay || hasAutoPlayed) return;
+
+    const handleCanPlay = () => {
+      if (autoPlay && !isPlaying && playCount === 0 && audio.paused && !hasAutoPlayed) {
+        setHasAutoPlayed(true);
+        audio.play()
+          .then(() => setIsPlaying(true))
+          .catch(error => {
+            console.error("Auto-play error:", error);
+            setHasAutoPlayed(false); // Reset flag if auto-play fails
+          });
+      }
+    };
+
+    audio.addEventListener('canplay', handleCanPlay);
+    
+    // If audio is already loaded, try to play immediately
+    if (audio.readyState >= 2 && audio.paused && !hasAutoPlayed) {
+      handleCanPlay();
+    }
+
+    return () => {
+      audio.removeEventListener('canplay', handleCanPlay);
+    };
+  }, [audioFile, autoPlay, isPlaying, playCount, hasAutoPlayed]);
 
   // Set up event listeners
   useEffect(() => {
@@ -51,6 +82,10 @@ const SoundPlayer = ({ audioFile, hideRedo = false }) => {
       setIsPlaying(false);
       setProgress(100);
       setPlayCount(prevCount => prevCount + 1);
+      // Call the onAudioEnd callback when audio finishes
+      if (onAudioEnd) {
+        onAudioEnd();
+      }
     };
     
     const handlePlay = () => {
@@ -76,7 +111,7 @@ const SoundPlayer = ({ audioFile, hideRedo = false }) => {
       audio.removeEventListener('play', handlePlay);
       audio.removeEventListener('pause', handlePause);
     };
-  }, []);
+  }, [onAudioEnd]);
 
   // Handle play/pause button click
   const handlePlay = () => {

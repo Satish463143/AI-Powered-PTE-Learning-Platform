@@ -2,10 +2,11 @@ import React, { useEffect, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux';
 import Timer from '../../../Common/timer/timer'
 import AnswersButton from '../../../Common/answersButton/answersButton'
+import ScoreDisplay from '../../../Common/scoreDisplay/scoreDisplay'
 import { setTimer } from '../../../reducer/chatReducer';
+import '../section.css';
 
-
-const multipleChoice = ({ data = {}, onSubmit: parentSubmit, onNext: parentNext, showTimer = true, questionId }) => {
+const multipleChoice = ({ data = {}, onSubmit: parentSubmit, onNext: parentNext, showTimer = true, questionId, resultData }) => {
   const dispatch = useDispatch();
   const submittedQuestions = useSelector(state => state.chat.submittedQuestions);
   const initializedTimers = useSelector(state => state.chat.initializedTimers);
@@ -13,17 +14,17 @@ const multipleChoice = ({ data = {}, onSubmit: parentSubmit, onNext: parentNext,
   const isTimerInitialized = questionId && initializedTimers[questionId];
   const [selectedAnswers, setSelectedAnswers] = useState([]);
 
-  // Dummy data for demonstration
-  const dummyData = {
-    question: "What is the capital of France?",
-    answers: ["Paris", "London", "Berlin", "Madrid"]
-  };
+  const options = data?.result?.question?.options;
+  const paragraph = data?.result?.question?.passage;
+  const questionData = data.result?.question?.question;
+  const correctAnswers = data?.result?.question?.correct_answers || [];
 
-  // Use provided data or fallback to dummy data
-  const questionData = data.answers ? data : dummyData;
+  // Get submitted answers and correct answers from resultData prop
+  const userAnswers = resultData?.userAnswers || selectedAnswers;
+  const correctAnswersFromResult = resultData?.correctAnswers || correctAnswers;
 
-   // Set time in seconds and store it to the redux store ONLY if this is the active question
-   useEffect(() => {
+  // Set time in seconds and store it to the redux store ONLY if this is the active question
+  useEffect(() => {
     if (showTimer && !isSubmitted && !isTimerInitialized) {
       dispatch(setTimer({ duration: 5 * 60, questionId }));
     }
@@ -39,40 +40,92 @@ const multipleChoice = ({ data = {}, onSubmit: parentSubmit, onNext: parentNext,
 
   const handleSubmit = () => {
     if (parentSubmit) {
-      parentSubmit(selectedAnswers);
+      // Format the submission data to match the expected structure
+      const submissionData = {
+        answer: selectedAnswers,
+        originalQuestion: {
+          type: 'multipleChoiceMultiple_reading',
+          section: 'reading',
+          passage: data?.result?.question?.passage,
+          question: data?.result?.question?.question,
+          options: data?.result?.question?.options,
+          correct_answers: [] // AI will evaluate based on passage
+        }
+      };
+      parentSubmit(submissionData);
     }
   };
 
   const handleNext = () => {
     if (parentNext) {
+      setSelectedAnswers([]); // Clear selections for next question
       parentNext();
     }
   };
+
+  const renderOption = (answer, idx) => {
+    if (isSubmitted) {
+      // Check if this option was selected by user
+      const isUserSelected = userAnswers.includes(answer);
+      // Check if this option is correct
+      const isCorrect = correctAnswersFromResult.includes(answer);
+      
+      let optionClass = 'reading-option';
+      if (isCorrect) {
+        optionClass += ' reading-option-correct';
+      } else if (isUserSelected && !isCorrect) {
+        optionClass += ' reading-option-incorrect';
+      } else {
+        optionClass += ' reading-option-neutral';
+      }
+
+      return (
+        <div key={idx} className={optionClass}>
+          <input
+            type="checkbox"
+            checked={isUserSelected}
+            disabled={true}
+          />
+          <span className="reading-option-text">
+            {answer}
+          </span>
+        </div>
+      );
+    } else {
+      // Not submitted - show normal checkboxes
+      return (
+        <label key={idx} className="reading-checkbox-label">
+          <input
+            type="checkbox"
+            value={answer}
+            checked={selectedAnswers.includes(answer)}
+            onChange={() => handleCheckboxChange(answer)}
+            disabled={isSubmitted}
+          />
+          <span>{answer}</span>
+        </label>
+      );
+    }
+  };
+
   return (
-    <div className={ `${isSubmitted && 'disabled_section' }`}>
+    <div className={`${isSubmitted && 'disabled_section'}`}>
       {showTimer && !isSubmitted && <Timer />}
 
-      <div className={`multiple_choice`} style={{margin:'30px 0'}}>
-        <p>{questionData.question}</p>
+      <div className="reading-multiple-choice-multiple">
+        <p>{paragraph}</p>
+        <p className='font-bold'>{questionData}</p>
         <div className='answers'>
-          {questionData.answers?.map((answer, idx) => (
-            <label key={idx} className="block mb-2">
-              <input
-                type="checkbox"
-                value={answer}
-                checked={selectedAnswers.includes(answer)}
-                onChange={() => handleCheckboxChange(answer)}
-                disabled={isSubmitted}
-              />
-              <span className="ml-2">{answer}</span>
-            </label>
-          ))}
+          {options?.map((answer, idx) => renderOption(answer, idx))}
         </div>
+        
+        {/* Score Display */}
+        <ScoreDisplay score={resultData?.overallScore} isSubmitted={isSubmitted} />
       </div>
 
       <AnswersButton onSubmit={handleSubmit} onNext={handleNext} questionId={questionId} />
     </div>
-  )
-}
+  );
+};
 
-export default multipleChoice
+export default multipleChoice;

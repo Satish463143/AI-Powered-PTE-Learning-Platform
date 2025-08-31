@@ -5,17 +5,19 @@ const audioSlice = createSlice({
   initialState: {
     currentAudio: null,
     hasPlayed: false,
-    redoUsed: false,
+    redoUsed: false
   },
   reducers: {
     setAudio: (state, action) => {      
-      // Store the audio source
-      state.currentAudio = action.payload;
-      
-      // Reset play state
-      state.hasPlayed = false;
-      state.redoUsed = false;
+      // Only update currentAudio if it's different
+      if (state.currentAudio !== action.payload) {
+        state.currentAudio = action.payload;
+        // Only reset play states if audio actually changed
+        state.hasPlayed = false;
+        state.redoUsed = false;
+      }
     },
+    //set played
     markPlayed: (state) => {
       state.hasPlayed = true;
     },

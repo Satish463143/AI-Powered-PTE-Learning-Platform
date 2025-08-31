@@ -13,6 +13,7 @@ const userDTO = Joi.object({
     confirmPassword: Joi.string().equal(Joi.ref('password')).required().messages({
         "any.only":"Password and confirmPassword must match"
     }),
+    phone: Joi.string().required(),
 })
 module.exports = {
     userDTO

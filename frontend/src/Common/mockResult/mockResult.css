@@ -1,0 +1,73 @@
+.mock_result {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1000;
+  }
+  
+  .mock_result_overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 1001;
+  }
+  
+  .mock_result_container {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: white;
+    border-radius: 8px;
+    padding: 20px;
+    z-index: 1002;
+    max-width: 800px;
+    width: 90%;
+    max-height: 90vh;             
+    overflow-y: auto;             
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+    animation: fadeInUp 0.4s ease both;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+  }
+  
+  .aichat_button {
+    text-align: center;
+    margin-top: 1.5rem;
+  }
+  
+  .aichat_button button {
+    background: var(--semi_blue);
+    padding: 10px 20px;
+    border-radius: 25px;
+    font-weight: 500;
+    font-size: 18px;
+    transition: all 0.3s ease;
+    color: var(--white);
+    cursor: pointer;
+  }
+  
+  .aichat_button button:hover {
+    font-weight: bold;
+    transform: scale(1.05);
+    background-color: var(--orange);
+    transition: transform 0.3s ease, background-color 0.3s ease;
+  }
+  
+  @keyframes fadeInUp {
+    from {
+      opacity: 0;
+      transform: translate(-50%, -40%);
+    }
+    to {
+      opacity: 1;
+      transform: translate(-50%, -50%);
+    }
+  }
+  

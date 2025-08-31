@@ -1,0 +1,13 @@
+{
+  "type": "service_account",
+  "project_id": "omega-ether-464909-e7",
+  "private_key_id": "ade2562df3eb32bac5dce528fc1ab75d9c33719a",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvAIBADANBgkqhkiG9w0BAQEFAASCBKYwggSiAgEAAoIBAQDWdNxAVHvY3/oa\nCruEZSZ8HKLbe7I9QqCY+TKo0HvqbjtkBVv8wTAtpE5o1VJPNV0jsYPaHFXmzAtJ\nOAiNcgrlzMApvrBCUb/nWlm/ywaNL9uqGc1sLw9VOPBAI4sDQZ5vI3WsqeEZn8to\nMRrU4M1sEO5fAJObCPm2zx2FNf7W0gN6IKy2+8iGGKtP28MI6aoAVfhOGm+mecEc\npEMjUwZRG/6cHriNAUcLTxfuATJlqRSXQwrzPxNQfSRMTF8xSCiSrA3NJBQtbw8a\n+6pXl2VN0O1aK2AuI3TFcMKf/hFraAGzx+bdcql+sGMXYIMAfImL/PuVhTxCYSgV\nRon2oX+7AgMBAAECggEAJ88ikYh9Qul0zj++xllWdwSD0LVaBVgoYq0jk8W7su1K\ndgsuo7Ei5d4RthEfSdfQlc8eeC75XTH0SF+v6r3IOxcydq1Qn8b4FhSmA13HNg8z\nuhQ3F0V3Fa1Pn8BZTj3wkJXnAqm4QN7yTcGLxweB6nUMIrODMuzMGfzBcJhw2WRk\nkf/9U/ye0jhiIEF5d9Nsc0bARFH4kvUCiIx3WDLmRBQZBFbs60rI4EtfWLduLeH/\nrjOLIUwts3KDe7HrQR7E0bHVI/GZxQP9sLIK/O80ba2s3Oyfz6V1MUJK0EJD2ZKX\n0DDdsGzMwKuZLGj+ad0rALfms60sUoU/okH+Dr35cQKBgQD68R68FPZK00rxDO3w\no42KOD7fLF59poEs+WhwbIG6kJ++mpqSHQ0ZEK8Vrmxv/DhTGgcRYFm312KEiS4u\nWWwBdt8aCn+6iOcz1/d5BhTPbn26se6oLNkMJp06DtbSVLO8L2i9s4srJKYiaBVa\n2pJ95CKgXzgQEOz3Xqmmd+uZCwKBgQDax3kJfu7iXI3avRJWZKApR0KShHlV51E2\nY6ru2GWxU9UEtS77tGcdEbbxXAEnmgPFrt7J/Pe/wFn5z9HLekqROCHHy6ICiEOp\ndZauME9+4p217rtcnp/WKpLt+QKLgpqco96XA10xyXdqyAQGOBVQHzDC0PXgE39c\nZhFS90bCEQKBgC1HLmV/XsU3hLEjxRcDW7mR1n5MMix3y50Cz35hhbLU/43TtYoh\npchdA0plM3mtR7hu3NGc0fNi8Iq7edKxHdTRzwWS2WMd6qGnGScEGuMmq5bxHf/I\nP816dioQnWBMGjYdU8fOypCZR0S0BQ5km8QNUtYe+C2l8CveL7wyrRbrAoGABEeW\npIrpHWB2HetI6ou5XlVYhgk1XmrR+eBlPZraEmfzaM4qhx32TmlETOBh3WZz4HAV\nR5o9NnEK0YoxLmvL/Z89ee0P1EDaIfx84Bdt1quULjTnUV6A/e2DRkhytkvtvlau\nSgH01r58KYiUG5MJR7H0gDsaNDHtcd9FQ3w21CECgYBvKWLkl6VCIklD2WiWjgFT\nToV00CU/vklW/lFTy3dmgvmH+2DeunsDS7FjdR/tWacEyGLqDc256EMsgC5jiCmR\nwqfTTKOA/anHg/p6G/TceBzF9bp5EN5IBRWgUvTt38qIyu9eaKtqFC98AewBF9CL\n6X+a58TqVh5NzX6liNxJtw==\n-----END PRIVATE KEY-----\n",
+  "client_email": "pte-storage-access@omega-ether-464909-e7.iam.gserviceaccount.com",
+  "client_id": "114482399756102971266",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/pte-storage-access%40omega-ether-464909-e7.iam.gserviceaccount.com",
+  "universe_domain": "googleapis.com"
+}

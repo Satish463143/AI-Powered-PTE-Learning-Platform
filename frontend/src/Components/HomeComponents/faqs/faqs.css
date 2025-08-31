@@ -10,8 +10,6 @@
     font-size: 40px;
     
 }
-
-
 .subtitle_2 {
     text-align: center;
     color: #666;
@@ -82,10 +80,7 @@
     font-size: 1.1rem;
 }
 
-@media (max-width: 768px) {
-    .container {
-        padding: 1rem;
-    }
+@media (max-width: 768px) {   
 
     .video_title h1 {
         font-size: 2rem;
@@ -97,5 +92,15 @@
 
     .faq-answer p {
         font-size: 1rem;
+    }
+}
+@media(max-width: 600px){
+    .faqs_title{
+        font-size: 30px;
+    }
+}
+@media(max-width: 500px){
+    .faqs_title{
+        font-size: 22px;
     }
 }

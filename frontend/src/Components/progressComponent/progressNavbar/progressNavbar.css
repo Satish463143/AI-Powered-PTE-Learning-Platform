@@ -1,101 +1,174 @@
 .progress_navbar{
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-top: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 20px;
 }
 
 .progress_bar h2{
-    font-size: 14px;
-    font-weight: 600;
-    margin-top: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  margin-top: 10px;
 }
 .progress_bar h2 span{
-    background:rgb(33, 233, 33) ;
-    padding:1px 10px;
-    border-radius: 50%;
-    margin-left: 10px;
+  background:rgb(33, 233, 33) ;
+  padding:1px 10px;
+  border-radius: 50%;
+  margin-left: 10px;
 }
 .progress_bar h3{
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    font-size: 23px;
-    font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 23px;
+  font-weight: 600;
 }
 .progress_line{
-    position: relative;
-    width: 500px;
-    height: 28px;
-    border-radius: 20px;
-    background: #737373;
-    z-index: 2;
+  position: relative;
+  width: 500px;
+  height: 28px;
+  border-radius: 20px;
+  background: #737373;
+  z-index: 2;
 }
-.progress_line::before{
-    position: absolute;
-    content: '';
-    top: 50%;
-    transform: translateY(-50%);
-    right: 10%;
-    height: 20px;
-    width:20px;
-    background: rgb(33, 233, 33);
-    border-radius: 50%;
-    z-index: 4;
-}
+
 .score_menu h3{
-    font-size: 14px;
-    font-weight: 600;
+  font-size: 14px;
+  font-weight: 600;
 
 }
 .progress_line_bar{
-    position: absolute;
-    top: 0;
-    left: 0;
-    z-index: 3;
-    height: 100%;
-    background: var(--blue);
-    border-radius: 20px;
-    transition: 0.3s ease-in-out;
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 3;
+  height: 100%;
+  background: var(--blue);
+  border-radius: 20px;
+  transition: 0.3s ease-in-out;
 }
 .select_score{
-    position: relative;
+  position: relative;
 }
 .score_disable{
-    background-color: #d3e9f3;
-    display: none;
-    position: absolute;
-    top: 80px;
-    right: 0;
-    width: 300px;
-    z-index: 100;
-    padding: 20px;
-    border-radius: 20px;
-    text-align: center;
+  background-color: #d3e9f3;
+  display: none;
+  position: absolute;
+  top: 80px;
+  right: 0;
+  width: 300px;
+  z-index: 100;
+  padding: 20px;
+  border-radius: 20px;
+  text-align: center;
 }
 
 .score_active{
-    display: block;
+  display: block;
 }
 .score_menu{
-    text-align: center;
+  text-align: center;
 }
 .score_menu h2{
-    margin-top: 10px;
-    font-size: 20px;
-    font-weight: 600;
-    cursor: pointer;
-    background: var(--blue);
-    padding: 5px 30px;
-    display: inline-block;
-    border-radius: 50px;
+  margin-top: 10px;
+  font-size: 20px;
+  font-weight: 600;
+  cursor: pointer;
+  background: var(--blue);
+  padding: 5px 30px;
+  display: inline-block;
+  border-radius: 50px;
 }
 @media (max-width: 1450px) {
-    .progress_bar{
-        margin-left: 50px;
-        transition: 0.3s ease-in-out;
-    }
-    .progress_bar_active{
-        margin-left: 0px;
-    }
+  
+  .progress_bar_active{
+      margin-left: 0px;
+  }
+}
+@media (max-width: 1024px) {
+  .progress_navbar {
+    flex-direction: column;
+    gap: 30px;
+    align-items: center;
+    padding: 30px;
+  }
+  .progress_bar h2{
+    text-align: center;
+}
+
+  .progress_line {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .score_disable {
+    position: static;
+    width: 100%;
+    margin-top: 20px;
+  }
+
+  .scores_btn {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .scores_btn button {
+    width: 100%;
+    font-size: 14px;
+  }
+
+  .xp_bar_score {
+    font-size: 18px;
+  }
+
+  .progress_bar h3 {
+    font-size: 20px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .score_menu h2 {
+    font-size: 16px;
+    padding: 6px 20px;
+  }
+}
+
+@media (max-width: 600px) {
+  .progress_navbar {
+    flex-direction: column;
+    padding: 10px;
+  }
+  .progress_line_bar {
+    width: 100%;
+}
+
+  .progress_line {
+    max-width: 100%;
+    height: 20px;
+  }
+
+  .xp_bar {
+    height: 18px;
+  }
+
+  .score_menu h3,
+  .score_disable h3 {
+    font-size: 13px;
+  }
+
+  .score_menu h2 {
+    font-size: 15px;
+  }
+
+  .scores_btn button {
+    padding: 8px 12px;
+    font-size: 13px;
+  }
+
+  .score_disable {
+    padding: 15px;
+    border-radius: 10px;
+  }
 }

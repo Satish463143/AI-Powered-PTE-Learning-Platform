@@ -1,8 +1,8 @@
 //listening section
-import fillInTheBlanks_listenng from './listening/fillInTtheBlanks';
+import fillInTheBlanks_listening from './listening/fillInTtheBlanks';
 import highlightIncorrectWords from './listening/highlightIncorrectWords';
 import multipleChoiceMultiple_listening from './listening/multipleChoice(Multiple)';
-import multipleChoiceSingle_listenong from './listening/multipleChoice(Single)';
+import multipleChoiceSingle_listening from './listening/multipleChoice(Single)';
 import selectMissingWord from './listening/selectMissingWord';
 import summarizeSpokenText from './listening/summarizeSpokenText';
 import writeFromDictation from './listening/writeFromDictation';
@@ -26,10 +26,10 @@ import summarizeWrittenText from './writing/summarizeWrittenText';
 import writeEssay from './writing/writeEssay';
 
 const componentMap = {
-    'fillInTheBlanks_listenng': fillInTheBlanks_listenng,
+    'fillInTheBlanks_listening': fillInTheBlanks_listening,
     'highlightIncorrectWords': highlightIncorrectWords,
     'multipleChoiceMultiple_listening': multipleChoiceMultiple_listening,
-    'multipleChoiceSingle_listenong': multipleChoiceSingle_listenong,
+    'multipleChoiceSingle_listening': multipleChoiceSingle_listening,
     'selectMissingWord': selectMissingWord,
     'summarizeSpokenText': summarizeSpokenText,
     'writeFromDictation': writeFromDictation,

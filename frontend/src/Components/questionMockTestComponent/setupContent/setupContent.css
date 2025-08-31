@@ -1,0 +1,80 @@
+.setup-content {
+  max-width: 800px;
+  margin: 2rem auto;
+  padding: 2rem;
+  background-color: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.setup-header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.setup-header h2 {
+  color: #333;
+  font-size: 1.8rem;
+  margin: 0;
+}
+
+.setup-body {
+  margin-bottom: 2rem;
+}
+
+.time-info,
+.instructions,
+.tips {
+  margin-bottom: 1.5rem;
+}
+
+.time-info h3,
+.instructions h3,
+.tips h3 {
+  color: #444;
+  font-size: 1.2rem;
+  margin-bottom: 0.5rem;
+}
+
+.time-info p,
+.instructions p {
+  color: #666;
+  line-height: 1.6;
+  margin: 0;
+}
+
+.tips ul {
+  list-style-type: disc;
+  margin: 0;
+  padding-left: 1.5rem;
+}
+
+.tips li {
+  color: #666;
+  line-height: 1.6;
+  margin-bottom: 0.5rem;
+}
+
+.setup-footer {
+  text-align: center;
+}
+
+.start-button {
+  background-color: #007bff;
+  color: white;
+  border: none;
+  padding: 0.8rem 2rem;
+  font-size: 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.start-button:hover {
+  background-color: #0056b3;
+}
+
+.start-button:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+} 

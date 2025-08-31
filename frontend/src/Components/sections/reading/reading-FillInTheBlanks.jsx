@@ -2,51 +2,71 @@ import React, { useEffect, useState } from 'react';
 import { DndContext, useDraggable, useDroppable } from '@dnd-kit/core';
 import Timer from '../../../Common/timer/timer';
 import AnswersButton from '../../../Common/answersButton/answersButton';
-import '../sectionCss/sectionCss.css';
+import ScoreDisplay from '../../../Common/scoreDisplay/scoreDisplay';
 import { useDispatch, useSelector } from 'react-redux';
 import { setTimer } from '../../../reducer/chatReducer';
+import '../section.css';
 
 const DraggableWord = ({ word, id }) => {
-  const { attributes, listeners, setNodeRef, transform } = useDraggable({ id });
+  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id });
   const style = {
     transform: transform ? `translate(${transform.x}px, ${transform.y}px)` : undefined,
-    padding: '8px 12px',
-    margin: '5px',
-    background: '#2daef5',
-    color: '#fff',
-    borderRadius: '5px',
-    cursor: 'grab',
-    display: 'inline-block',
   };
 
   return (
-    <div ref={setNodeRef} style={style} {...listeners} {...attributes}>
+    <div 
+      ref={setNodeRef} 
+      style={style} 
+      className={`reading-draggable-word ${isDragging ? 'dragging' : ''}`}
+      {...listeners} 
+      {...attributes}
+    >
       {word}
     </div>
   );
 };
 
-const DroppableBlank = ({ id, filledWord }) => {
+const DroppableBlank = ({ id, filledWord, isSubmitted, userAnswer, correctAnswer, isCorrect, hasResultData }) => {
   const { isOver, setNodeRef } = useDroppable({ id });
-  const style = {
-    border: '1px dashed #aaa',
-    padding: '8px',
-    minWidth: '120px',
-    minHeight: '30px',
-    margin: '5px',
-    backgroundColor: isOver ? '#e6f7ff' : '#fff',
-    borderRadius: '4px',
-    textAlign: 'center',
-  };
+  
+  // If submitted AND we have result data, show the result styling
+  if (isSubmitted && hasResultData) {
+    if (isCorrect) {
+      // Correct answer - green background
+      return (
+        <span className="reading-blank-correct">
+          <span className="reading-correct-icon">✓</span>
+          {userAnswer}
+        </span>
+      );
+    } else {
+      // Incorrect answer - red background with X and correct answer
+      return (
+        <span className="reading-blank-incorrect">
+          <span className="reading-incorrect-icon">✗</span>
+          {userAnswer}
+          <span className="reading-correct-answer">
+            (Answer: {correctAnswer})
+          </span>
+        </span>
+      );
+    }
+  }
+  
+  // Not submitted OR submitted but no result yet - show normal styling with user's answer
+  let blankClass = 'reading-droppable-blank';
+  if (isOver) {
+    blankClass += ' drag-over';
+  }
 
   return (
-    <span ref={setNodeRef} style={style}>
+    <span ref={setNodeRef} className={blankClass}>
       {filledWord || '_______'}
     </span>
   );
 };
 
-const ReadingFillInTheBlanks = ({ data, onSubmit: parentSubmit,onNext: parentNext,  showTimer = true, questionId}) => {
+const ReadingFillInTheBlanks = ({ data, onSubmit: parentSubmit, onNext: parentNext, showTimer = true, questionId, resultData }) => {
   const dispatch = useDispatch();
   const submittedQuestions = useSelector((state) => state.chat.submittedQuestions);
   const initializedTimers = useSelector((state) => state.chat.initializedTimers);
@@ -59,19 +79,42 @@ const ReadingFillInTheBlanks = ({ data, onSubmit: parentSubmit,onNext: parentNex
     }
   }, [dispatch, showTimer, questionId, isSubmitted, isTimerInitialized]);
 
-  const paragraphText = data?.paragraphText || [
-    'Last night, I went to a grand music show at the city hall. The auditorium was filled with excited audiences. Some people, unfortunately, were chatting',
-    '__',
-    ', ignoring the performers onstage. I closed my eyes,',
-    '__',
-    ', and immersed myself in the music.',
-  ];
-
-  const wordOptions = ['constantly', 'However', 'trying', 'immersed'];
+  // Split the paragraph text into an array based on blank spaces
+  const paragraphText = data?.result?.question?.paragraph ? data.result.question.paragraph.split('___') : [];
+  const wordOptions = data?.result?.question?.blanks || [];
 
   const [availableWords, setAvailableWords] = useState(wordOptions);
-  const [blanks, setBlanks] = useState([null, null]);
+  const [blanks, setBlanks] = useState(Array(wordOptions.length).fill(null));
   const [activeId, setActiveId] = useState(null);
+
+  // Get submitted answers and correct answers from resultData prop
+  const userAnswers = resultData?.userAnswers || [];
+  const correctAnswers = resultData?.correctAnswers || wordOptions;
+  
+
+
+  // Initialize with resultData if available
+  useEffect(() => {
+    if (resultData?.userAnswers) {
+      // Clear localStorage once we have the result
+      localStorage.removeItem(`readingBlanks_${questionId}`);
+    }
+  }, [resultData, questionId]);
+  
+  // Preserve answers when submitted but resultData not yet available
+  useEffect(() => {
+    if (isSubmitted && !resultData?.userAnswers) {
+      const savedBlanks = localStorage.getItem(`readingBlanks_${questionId}`);
+      if (savedBlanks) {
+        try {
+          const parsedBlanks = JSON.parse(savedBlanks);
+          setBlanks(parsedBlanks);
+        } catch (error) {
+          console.error('Error parsing saved blanks:', error);
+        }
+      }
+    }
+  }, [isSubmitted, resultData, questionId]);
 
   const handleDragStart = (event) => {
     setActiveId(event.active.id);
@@ -101,40 +144,81 @@ const ReadingFillInTheBlanks = ({ data, onSubmit: parentSubmit,onNext: parentNex
 
   const handleSubmit = () => {
     if (parentSubmit) {
-      parentSubmit(blanks);
+      // Store the blanks in localStorage before submission to preserve them
+      localStorage.setItem(`readingBlanks_${questionId}`, JSON.stringify(blanks));
+      
+      // Create an object mapping blank positions to words
+      const answerMap = {};
+      blanks.forEach((word, index) => {
+        answerMap[`blank${index + 1}`] = word || ''; // Handle null/undefined values
+      });
+
+      // Format the submission data to match the expected structure
+      const submissionData = {
+        answer: answerMap,
+        originalQuestion: {
+          type: 'reading_fillInTheBlanks',
+          section: 'reading',
+          paragraph: data?.result?.question?.paragraph || '',
+          blanks: data?.result?.question?.blanks || [],
+          // Don't include correct_answers as AI will evaluate based on context
+        }
+      };
+      parentSubmit(submissionData);
     }
   };
-  
+
+  // Get the answers to display - prioritize resultData, then localStorage, then current blanks
+  const getDisplayAnswers = () => {
+    if (resultData?.userAnswers) {
+      return resultData.userAnswers;
+    } else if (isSubmitted) {
+      // When submitted but no result yet, use the current blanks (which should be from localStorage)
+      return blanks;
+    } else {
+      return blanks;
+    }
+  };
+
+  const displayAnswers = getDisplayAnswers();
 
   return (
     <div className={`${isSubmitted && 'disabled_section'}`}>
       {showTimer && !isSubmitted && <Timer />}
 
       <DndContext onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-        <div style={{ padding: '10px',margin:'30px 0', background: '#fff', border: '1px solid #ddd', borderRadius: '6px' }}>
-          <p style={{ lineHeight: '2em' }}>
-            {paragraphText.map((part, idx) => {
-              if (part === '__') {
-                const blankIndex = paragraphText.slice(0, idx).filter(p => p === '__').length;
-                return (
+        <div className="reading-drag-blanks-container">
+          <p className="reading-drag-paragraph">
+            {paragraphText.map((part, idx) => (
+              <React.Fragment key={`part-${idx}`}>
+                <span>{part}</span>
+                {idx < paragraphText.length - 1 && (
                   <DroppableBlank 
-                    key={`blank-${blankIndex}`} 
-                    id={`blank-${blankIndex}`} 
-                    filledWord={blanks[blankIndex]} 
+                    key={`blank-${idx}`} 
+                    id={`blank-${idx}`} 
+                    filledWord={displayAnswers[idx]} 
+                    isSubmitted={isSubmitted}
+                    userAnswer={displayAnswers[idx]}
+                    correctAnswer={correctAnswers[idx]}
+                    isCorrect={isSubmitted ? displayAnswers[idx] === correctAnswers[idx] : null}
+                    hasResultData={!!resultData?.userAnswers}
                   />
-                );
-              } else {
-                return <span key={`text-${idx}`}>{part} </span>;
-              }
-            })}
-          </p>
-          <div style={{ marginTop: '20px', display: 'flex', flexWrap: 'wrap' }}>
-            {availableWords.map((word, index) => (
-              <DraggableWord key={word} word={word} id={word} />
+                )}
+              </React.Fragment>
             ))}
-          </div>
+          </p>
+          {!isSubmitted && (
+            <div className="reading-word-bank">
+              {availableWords.map((word) => (
+                <DraggableWord key={word} word={word} id={word} />
+              ))}
+            </div>
+          )}
         </div>
       </DndContext>
+
+      {/* Score Display */}
+      <ScoreDisplay score={resultData?.overallScore} isSubmitted={isSubmitted} />
 
       <AnswersButton onSubmit={handleSubmit} onNext={parentNext} questionId={questionId} />
     </div>

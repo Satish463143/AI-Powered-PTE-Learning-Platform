@@ -1,45 +1,75 @@
-import React, { useEffect, useState } from 'react'
-import SoundPlayer from '../listening/soundPlayer';
-import SpeakingTime from './speakingTime';
-import { setAudio } from '../../../reducer/audioReducer';
-import defaultAudio from '../../../assets/audio/audio.mp3';
+import React, { useEffect } from 'react'
 import { useDispatch, useSelector } from 'react-redux';
+import { setQuestionAudio, setCurrentQuestion } from '../../../reducer/questionAudioReducer';
+import { setQuestionContent } from '../../../reducer/questionContentReducer';
 import { setPrepareTime, setStartTime, resetTimer } from '../../../reducer/speakingTimerReducer';
 import { setTimer } from '../../../reducer/chatReducer';
-import SpeakingMic, { audioRecordingRef } from './speakingMic';
 import AnswersButton from '../../../Common/answersButton/answersButton';
+import AudioSpeakingTime, { audioRecordingRef } from './audioSpeakingTime';
 
 // Constants for timer durations
 const PREPARE_TIME = 5; // seconds
 const SPEAKING_TIME = 20; // seconds
 
-const repeatSentence = ({ data, onSubmit: parentSubmit, onNext: parentNext, showTimer = true, questionId }) => {
+// Import all audio files from the RepeatSentence folder
+const repeatSentenceAudios = import.meta.glob('../../../assets/audio/Speaking/repeat_sentence/*.mp3', { eager: true });
+
+// Helper function to get random audio
+const getRandomAudio = () => {
+  const audios = Object.values(repeatSentenceAudios).map(module => module.default);
+  const randomIndex = Math.floor(Math.random() * audios.length);
+  return audios[randomIndex];
+};
+
+const RepeatSentence = ({ data, onSubmit: parentSubmit, onNext: parentNext, showTimer = true, questionId }) => {
   const dispatch = useDispatch();
   const submittedQuestions = useSelector(state => state.chat.submittedQuestions);
   const initializedTimers = useSelector(state => state.chat.initializedTimers);
+  const questionContents = useSelector(state => state.questionContent.questionContents);
+  const audioMap = useSelector(state => state.questionAudio.audioMap);
   const isSubmitted = questionId && submittedQuestions[questionId];
   const isTimerInitialized = questionId && initializedTimers[questionId];
-  const [audioSource, setAudioSource] = useState(defaultAudio);
 
+  // Set current question when component mounts or questionId changes
+  useEffect(() => {
+    if (questionId) {
+      dispatch(setCurrentQuestion(questionId));
+    }
+  }, [questionId, dispatch]);
 
-   // Set timers on mount, only if the question is not submitted and should show timer
-   useEffect(() => {
+  // Initialize the content for this question if it doesn't exist
+  useEffect(() => {
+    if (questionId && !questionContents[questionId]) {
+      // If no existing content, get from data or generate new content
+      const audioUrl = data?.audioUrl || getRandomAudio();
+      
+      // Store the content in redux
+      dispatch(setQuestionContent(questionId, {
+        audioUrl,
+        type: 'repeatSentence',
+        sentence: data?.sentence || "Please repeat the sentence you hear."
+      }));
+      
+      // Set the question-specific audio
+      dispatch(setQuestionAudio({ questionId, audioUrl }));
+    }
+  }, [questionId, data, dispatch, questionContents]);
+
+  // Set timers on mount
+  useEffect(() => {
     if (showTimer && !isSubmitted) {
       // Initialize chat timer (needed for submit button to work)
-      // We need this small timer for the submit button to work, but we don't display it
       if (!isTimerInitialized && questionId) {
         dispatch(setTimer({ duration: 40, questionId })); 
       }
 
-      // Set read aloud specific timers
+      // Set timers
       dispatch(setPrepareTime(PREPARE_TIME)); 
       dispatch(setStartTime(SPEAKING_TIME));
     } else {
-      // Reset timer for submitted questions or inactive questions
       dispatch(resetTimer());
     }
     
-    // Cleanup when component unmounts
     return () => {
       if (showTimer) {
         dispatch(resetTimer());
@@ -47,53 +77,55 @@ const repeatSentence = ({ data, onSubmit: parentSubmit, onNext: parentNext, show
     };
   }, [dispatch, isSubmitted, showTimer, questionId, isTimerInitialized]);
 
-  // Set up audio source
-  useEffect(() => {
-    try {
-      let audioToUse = defaultAudio;
-      
-      if (data) {
-        if (typeof data === 'string') {
-          audioToUse = data;
-        } else if (data.audio) {
-          audioToUse = data.audio;
-        } else if (data.audioUrl) {
-          audioToUse = data.audioUrl;
-        }
-      }
-      
-      setAudioSource(audioToUse);
-      dispatch(setAudio(audioToUse));
-    } catch (error) {
-      console.error("Error setting audio:", error);
-    }
-  }, [data, dispatch]);
-
   const handleSubmit = () => {
-    if (parentSubmit) {
-      // Get the audio recording from the global reference
-      const audioData = {
-        audioBlob: audioRecordingRef.blob,
-        audioUrl: audioRecordingRef.url,
-        questionId
-      };
-      
-      parentSubmit(audioData);
+    if (!parentSubmit || !questionId || !audioMap[questionId]) {
+      console.error('Missing required data for submission');
+      return;
+    }
+
+    // Validate audio recording
+    if (!audioRecordingRef.blob) {
+      alert('No recording found. Please record your answer before submitting.');
+      return;
+    }
+
+    if (audioRecordingRef.blob.size < 1024) {
+      alert('Recording is too short. Please try again.');
+      return;
+    }
+
+    // Get the audio recording from the global reference
+    const audioData = {
+      audioBlob: audioRecordingRef.blob,
+      audioUrl: audioRecordingRef.url,
+      questionId
+    };
+
+    // Add the question audio data to the submission
+    const submissionData = {
+      answer: audioData,
+      originalQuestion: questionContents[questionId]
+    };
+    
+    try {
+      parentSubmit(submissionData);
+    } catch (error) {
+      console.error('Error submitting answer:', error);
+      alert('Failed to submit answer. Please try again.');
     }
   }
+
   return (
     <div className={isSubmitted ? 'disabled_section' : ''}>
-      <SpeakingTime isSubmitted={isSubmitted} showTimer={showTimer} />
       <p>You will hear a sentence. Please repeat the sentence exactly as you hear it. You will hear the sentence only once.</p>
-      <div style={{margin:'30px 0'}}>
-        
-        <SoundPlayer audioFile={audioSource} />               
-      </div>
-      <SpeakingMic 
-        isSubmitted={isSubmitted} 
-        showTimer={showTimer} 
+      
+      <AudioSpeakingTime 
+        isSubmitted={isSubmitted}
+        showTimer={showTimer}
         speakingTime={SPEAKING_TIME}
+        audioFile={audioMap[questionId]}
       />
+      
       <div className="read-aloud-answers-button">
         <AnswersButton onSubmit={handleSubmit} onNext={parentNext} questionId={questionId} />
       </div>
@@ -101,4 +133,4 @@ const repeatSentence = ({ data, onSubmit: parentSubmit, onNext: parentNext, show
   )
 }
 
-export default repeatSentence
+export default RepeatSentence;

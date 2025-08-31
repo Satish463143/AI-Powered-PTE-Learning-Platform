@@ -1,0 +1,152 @@
+.ai_notes_section{
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.ai_notes_content{
+    border: 2px solid var(--semi_blue);
+    border-radius: 20px;
+    padding: 20px;
+    margin-top: 50px;
+    box-shadow: 0 0 10px 0 rgba(0, 0, 0, 0.1);
+    max-width: 900px;
+    width: 100%;
+}
+.notes_content_item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+    cursor: pointer;
+    padding: 15px;
+    transition: all 0.3s ease;
+    border-radius: 50px;
+}
+.notes_content_item:hover{
+    background: var(--light_blue);
+}
+.mobile_recomendation_tab{
+  display: none;
+}
+.notes_content_item p{
+    font-size: 20px;
+    border: 2px solid var(--black);
+    display: inline-block;
+    padding: 5px 10px;
+    border-radius: 20px;
+    background: var(--orange);
+}
+@media (max-width: 768px) {
+    .ai_notes_section {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 15px;
+      }
+    
+      .ai_notes_content {
+        padding: 16px;
+      }
+    
+      .notes_content_item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 12px 16px;
+        border-radius: 25px;
+        background-color: #f9f9f9;
+        max-width: 100%;
+        gap: 12px;
+        flex-wrap: wrap; /* optional: wrap if screen is too narrow */
+      }
+    
+      .notes_content_item p {
+        font-size: 17px;
+        padding: 10px;
+        margin: 0;
+        flex: 1;
+      }
+    
+      .pdf-link {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        flex-shrink: 0;
+      }
+    
+      .pdf-link a {
+        display: flex;
+        align-items: center;
+        text-decoration: none;
+        color: inherit;
+      }
+    
+      .pdf-link svg {
+        width: 24px;
+        height: 24px;
+      }
+}
+
+@media (max-width: 480px) {
+    .ai_notes_content {
+        padding: 14px;
+        margin-top: 20px;
+    }
+
+    .notes_content_item {
+        padding: 10px 14px;
+    }
+
+    .notes_content_item p {
+        font-size: 16px;
+        padding: 4px 8px;
+    }
+}
+
+/* Responsive Dropdown Styles */
+.ai_recommendation_dropdown {
+    display: none;
+    margin: 20px auto;
+    width: 90%;
+    max-width: 300px;
+}
+
+
+/* Show dropdown and hide tabs on smaller screens */
+@media screen and (max-width: 750px) {
+  .ai_recommendation_tab {
+    display: none;
+  }
+  .ai_recommendation_dropdown .Select__control {
+    border: 2px solid var(--primary-color);
+    border-radius: 8px;
+    box-shadow: none;
+  }
+
+  .ai_recommendation_dropdown {
+    display: block;
+  
+    padding: 10px;
+   border-radius: 20px;
+    cursor: pointer;
+    position: relative; 
+    z-index: 900;
+    transition: color 0.3s ease,  0.3s ease, transform 0.3s ease;
+    background-color: var(--light_blue);
+   
+  }
+  
+
+  .ai_recommendation_dropdown:hover {
+    
+    transform: scale(1.05);
+    cursor: pointer;
+    transition: all 0.3s ease-in-out;
+
+  
+  }
+
+  .ai_recommendation_dropdown:active {
+    transform: scale(0.98);
+  }
+}
+

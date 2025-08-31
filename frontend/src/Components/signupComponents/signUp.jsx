@@ -7,16 +7,13 @@ import { yupResolver } from "@hookform/resolvers/yup";
 import * as Yup from "yup";
 import { TextInputComponent } from '../../Common/form/form'
 import { useCreateMutation } from '../../api/user.api';
-import { toast } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
+import { toast } from 'react-toastify'
 
-
-
-const signUp = () => {  
+const SignUp = () => {  
     const [loading, setLoading] = useState(false);
     const [agreeTerms, setAgreeTerms] = useState(false);
     const navigate = useNavigate()
-    const [createUser] = useCreateMutation();
+    const [createUser] = useCreateMutation()
 
     const registerDTO = Yup.object({
         userName: Yup.string().min(2).max(50).required(),
@@ -31,35 +28,36 @@ const signUp = () => {
         confirmPassword: Yup.string()
           .oneOf([Yup.ref("password")], "Password and comfirm password must match")
           .required(),
-        
+        phone: Yup.string()
+        .required("Phone number is required" )
+        .matches(/^[0-9]{10}$/, "Phone number must be 10 digits")
+        .matches(/^9[78][0-9]{8}$/,"Phone number must start with 97 or 98 and be 10 digits")
+
+
       });
 
-    const { handleSubmit, control, formState: { errors }, setError } = useForm({
-      resolver: yupResolver(registerDTO),
-      });
+      const {  handleSubmit, control, setError, formState: { errors }, } = useForm({
+        resolver: yupResolver(registerDTO),
+        });
 
-    const register = async(data)=>{
-        setLoading(true)
-        try{
-          await createUser(data).unwrap()
-          toast.success("Signup successful")
-          navigate('/login')
-
-        }catch(exception){
-          if (exception.status === 400) {
-            Object.keys(exception.data.result).map((field) => {
-              setError(field, { message: exception.data.result[field] });
-            });
-          }
-          toast.error(exception.data?.message || "Signup failed")
-        }finally{
-            setLoading(false)
+        const register = async(data)=>{
+            setLoading(true)
+            try{
+              await createUser(data).unwrap()
+              toast.success("Signup successful")
+              navigate('/login')
+            }catch(exception){
+              if (exception.status === 400) {
+                Object.keys(exception.data.result).map((field) => {
+                  setError(field, { message: exception.data.result[field] });
+                });
+              }
+              toast.error(exception.data?.message || "Signup failed")
+            }finally{
+                setLoading(false)
+            }
         }
-    }
-    
-
-
-  return (
+      return (
     <div className="auth-page container">
       <motion.div 
         className="auth-page__container"
@@ -120,6 +118,19 @@ const signUp = () => {
                 />
             
           </div>
+          <div className="auth-page__form-group"> 
+            <label htmlFor="phone" className="auth-page__label">
+             Phone Number
+            </label>
+            <TextInputComponent
+                    name="phone"
+                    type="number"
+                    errMsg={errors?.phone?.message || null}
+                    required:true
+                    control={control}
+                />
+            
+          </div>
           
           <div className="auth-page__checkbox-container">
             <input
@@ -174,11 +185,11 @@ const signUp = () => {
         </div>
         
         <div className="auth-page__terms">
-          By creating an account, you agree to our <Link href="/terms">Terms of Service</Link> and acknowledge our <Link href="/privacy">Privacy Policy</Link>.
+          By creating an account, you agree to our <Link to="/terms">Terms of Service</Link> and acknowledge our <Link to="/privacy">Privacy Policy</Link>.
         </div>
       </motion.div>
     </div>
   )
 }
 
-export default signUp
+export default SignUp

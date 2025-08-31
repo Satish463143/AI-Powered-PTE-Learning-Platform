@@ -1,13 +1,13 @@
-const { deleteFile } = require("../utilities/helper");
+const { bucket } = require('../config/googleCloud.config');
 
 const bodyValidator = (schema) => {
     return async (req, res, next) => {
         try {
             const data = req.body;
-            // console.log("Request body:", JSON.stringify(data)); // Log request body
             
             if (req.file) {
-                data[req.file.fieldname] = req.file.filename;
+                // Use cloud storage URL instead of filename
+                data[req.file.fieldname] = req.file.cloudStoragePublicUrl;
             }
 
             await schema.validateAsync(data, { abortEarly: false });
@@ -17,20 +17,22 @@ const bodyValidator = (schema) => {
 
             // Check if Joi validation error
             if (exception.isJoi && exception.details) {
-                // File delete
-                if (req.file) {
-                    console.log(req.file);
-                    deleteFile("./" + req.file.path);
+                // Delete file from cloud storage if validation fails
+                if (req.file && req.file.cloudStorageObject) {
+                    try {
+                        await bucket.file(req.file.cloudStorageObject).delete();
+                    } catch (deleteError) {
+                        console.error('Error deleting file from cloud storage:', deleteError);
+                    }
                 }
 
                 // Map the validation errors to details object
                 exception.details.map((error) => {
                     console.log("Validation error:", error);
-                    
                     detail[error["path"][0]] = error.message;
                 });
             } else {
-                // Handle other types of errors (e.g., unexpected errors)
+                // Handle other types of errors
                 console.error('validator Error:', exception);
             }
   

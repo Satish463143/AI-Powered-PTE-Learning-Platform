@@ -1,0 +1,51 @@
+/* TopNav.css */
+
+.topnav-container {
+    z-index: 50;
+    position: sticky;
+    top: 0;
+    width: 100%;
+    border-bottom: 1px solid #e5e7eb; /* gray-200 */
+    background-color: white;
+  }
+  
+  .topnav-bar {
+    position: relative;
+    width: 100%;
+  }
+  
+  .hamburger-btn {
+    transition: background-color 0.2s;
+    padding: 12px;
+  }
+  
+  .hamburger-btn:hover,
+  .hamburger-btn.active {
+    background-color: #f3f4f6; /* gray-100 */
+  }
+  
+  .hamburger-line {
+    display: block;
+    width: 24px;
+    height: 2px;
+    background-color: #4b5563; /* gray-600 */
+    margin-bottom: 5px;
+  }
+  
+  .hamburger-line:last-child {
+    margin-bottom: 0;
+  }
+  
+  .logout-btn {
+    font-weight: 500;
+    font-size: 0.875rem;
+    padding: 12px;
+  }
+  
+  .welcome-text {
+    font-size: 1rem;
+    font-weight: 500;
+    line-height: 1.5;
+    text-align: center;
+  }
+  

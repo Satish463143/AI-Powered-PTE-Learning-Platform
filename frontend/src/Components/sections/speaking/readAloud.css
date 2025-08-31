@@ -4,3 +4,11 @@
   display: none;
 }
 
+.describe_image_grid{
+  display: grid;
+  grid-template-columns: 60% 40%;
+  gap: 20px;
+  justify-content: center;
+  align-items: center;
+}
+

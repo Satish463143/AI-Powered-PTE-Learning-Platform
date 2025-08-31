@@ -1,20 +1,25 @@
-import React from 'react'
+import React, { useState } from 'react'
 import Banner from '../../Components/HomeComponents/banner/banner'
 import AllSections from '../../Components/HomeComponents/allSections/allSections'
-import Tutorials from '../../Components/HomeComponents/tutorials/tutorials'
-import Carousel from '../../Components/HomeComponents/carousel/carousel'
-import VideoFeatures from '../../Components/HomeComponents/videoFeatures/videoFeatures'
 import Faqs from '../../Components/HomeComponents/faqs/faqs'
+import AiModel from '../../Components/HomeComponents/aiModel/aiModel'
+import Ready from '../../Components/HomeComponents/ready/ready'
+import Review from '../../Components/HomeComponents/review/review'
+import './homePage.css'
 const HomePage = () => {
+ 
+
   return (
-    <div>
+    <>
+      <div className='shadow_bg'></div>
+      <div className='dots_bg'></div>  
       <Banner/>
       <AllSections/>
-      <Tutorials/>
-      <Carousel/>
-      <VideoFeatures/>
-      <Faqs/>
-    </div>
+      <AiModel/>
+      <Ready/>
+      <Review/>
+      <Faqs/>      
+    </>
   )
 }
 

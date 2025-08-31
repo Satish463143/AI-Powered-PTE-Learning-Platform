@@ -9,14 +9,16 @@ export const audioRecordingRef = {
   url: null
 };
 
-// Default speaking time in seconds (fallback value)
 const DEFAULT_SPEAKING_TIME = 20;
 
-const SpeakingMic = ({ isSubmitted, showTimer = true, speakingTime }) => {
-  const dispatch = useDispatch();
-  const { isPreparing, isStarted, startTime } = useSelector((state) => state.speakingTimer);
+// Setup speech recognition (Web Speech API)
+const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+let recognition = null;
 
-  // Get the speaking time from props or use the default
+const SpeakingMic = ({ isSubmitted, showTimer = true, speakingTime, readyToRecord = true }) => {
+  const dispatch = useDispatch();
+  const { isPreparing, isStarted } = useSelector((state) => state.speakingTimer);
+
   const currentSpeakingTime = speakingTime || DEFAULT_SPEAKING_TIME;
 
   const [status, setStatus] = useState('');
@@ -24,24 +26,87 @@ const SpeakingMic = ({ isSubmitted, showTimer = true, speakingTime }) => {
   const [isPaused, setIsPaused] = useState(false);
   const [audioUrl, setAudioUrl] = useState(null);
   const [isTimerOver, setIsTimerOver] = useState(false);
+  const [transcript, setTranscript] = useState('');
 
   const mediaRecorderRef = useRef(null);
   const streamRef = useRef(null);
   const recordedChunks = useRef([]);
+  const recognitionRef = useRef(null);
 
-  // Update status and control recording
+  // Initialize speech recognition
+  const initializeSpeechRecognition = () => {
+    if (!SpeechRecognition || recognitionRef.current) return;
+
+    recognition = new SpeechRecognition();
+    recognitionRef.current = recognition;
+
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.lang = 'en-US';
+
+    recognition.onresult = (event) => {
+      const speechResult = Array.from(event.results)
+        .map(result => result[0].transcript)
+        .join('');
+      setTranscript(speechResult);
+    };
+
+    recognition.onerror = (event) => {
+      console.error('Speech recognition error:', event.error);
+      if (event.error === 'not-allowed') {
+        setStatus('Microphone access denied');
+      }
+    };
+  };
+
   useEffect(() => {
-    // Don't run recording if the question is submitted or shouldn't show timer
+    initializeSpeechRecognition();
+    return () => {
+      // Cleanup on unmount
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.stop();
+        } catch (err) {
+          // Ignore errors during cleanup
+        }
+      }
+      stopRecording();
+    };
+  }, []);
+
+  const startRecognition = () => {
+    if (!recognitionRef.current) return;
+    try {
+      recognitionRef.current.start();
+    } catch (err) {
+      console.warn('Speech recognition already started');
+    }
+  };
+
+  const stopRecognition = () => {
+    if (!recognitionRef.current) return;
+    try {
+      recognitionRef.current.stop();
+    } catch (err) {
+      console.warn('Speech recognition already stopped');
+    }
+  };
+
+  useEffect(() => {
     if (isSubmitted || !showTimer) {
       setStatus('Done!');
-      if (isRecording) {
-        stopRecording();
-      }
+      if (isRecording) stopRecording();
       return;
     }
-    
+
+    if (!readyToRecord) {
+      setStatus('Please wait for audio to finish...');
+      setIsTimerOver(false);
+      return;
+    }
+
     if (isPreparing) {
-      setStatus('Prepare time... (Click mic to start speaking now)');
+      setStatus('Prepare time... (Click mic to start speaking)');
       setIsTimerOver(false);
     } else if (isStarted) {
       if (!isRecording && !isPaused) {
@@ -53,246 +118,199 @@ const SpeakingMic = ({ isSubmitted, showTimer = true, speakingTime }) => {
       } else {
         setStatus('Speak now – Recording...');
       }
-    } else if (!isPreparing && !isStarted) {
-      if (isRecording) {
-        stopRecording();
-      }
+    } else {
+      if (isRecording) stopRecording();
       setStatus('Done! Try again');
       setIsTimerOver(true);
     }
-  }, [isPreparing, isStarted, isSubmitted, showTimer, isRecording, isPaused]);
+  }, [isPreparing, isStarted, isSubmitted, showTimer, isRecording, isPaused, readyToRecord]);
 
-  // Start audio recording
   const startRecording = async () => {
     if (isRecording || isSubmitted || !showTimer) return;
-
+    
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      streamRef.current = stream;
+      // Stop any existing recording first
+      stopRecording();
+      
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+          channelCount: 1,
+          sampleRate: 44100,
+          sampleSize: 16
+        } 
+      });
+      
+      // Set audio context options for echo prevention
+      const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      const source = audioContext.createMediaStreamSource(stream);
+      const destination = audioContext.createMediaStreamDestination();
+      
+      // Create and configure audio nodes
+      const gainNode = audioContext.createGain();
+      gainNode.gain.value = 0.8; // Reduce volume slightly
+      
+      // Connect nodes
+      source.connect(gainNode);
+      gainNode.connect(destination);
+      
+      // Use the processed stream for recording
+      const processedStream = destination.stream;
+      streamRef.current = processedStream;
 
-      const mediaRecorder = new MediaRecorder(stream);
+      const mediaRecorder = new MediaRecorder(processedStream, {
+        mimeType: 'audio/webm;codecs=opus',
+        audioBitsPerSecond: 128000
+      });
+      
       mediaRecorderRef.current = mediaRecorder;
-      recordedChunks.current = []; // Clear previous chunks when starting new recording
+      recordedChunks.current = [];
 
       mediaRecorder.ondataavailable = (e) => {
-        if (e.data.size > 0) {
-          recordedChunks.current.push(e.data);
-        }
+        if (e.data.size > 0) recordedChunks.current.push(e.data);
       };
 
       mediaRecorder.onstop = () => {
-        const audioBlob = new Blob(recordedChunks.current, { type: 'audio/webm' });
-        
-        // Update the global reference
+        const audioBlob = new Blob(recordedChunks.current, { 
+          type: 'audio/webm;codecs=opus'
+        });
+        const url = URL.createObjectURL(audioBlob);
         audioRecordingRef.blob = audioBlob;
-        audioRecordingRef.url = URL.createObjectURL(audioBlob);
+        audioRecordingRef.url = url;
+        setAudioUrl(url);
         
-        setAudioUrl(URL.createObjectURL(audioBlob));
+        // Cleanup audio context
+        audioContext.close();
       };
 
-      // Set a timeslice to get frequent data chunks (every 250ms)
-      // This ensures we have data available when pausing
       mediaRecorder.start(250);
       setIsRecording(true);
       setIsPaused(false);
+      setTranscript('');
+      startRecognition();
     } catch (err) {
-      console.error('Error accessing microphone:', err);
+      console.error('Mic access error:', err);
       setStatus('Mic access denied');
     }
   };
 
-  // Stop recording and cleanup
   const stopRecording = () => {
-    if (mediaRecorderRef.current) {
+    if (mediaRecorderRef.current?.state === 'recording') {
       mediaRecorderRef.current.stop();
     }
     if (streamRef.current) {
-      streamRef.current.getTracks().forEach((track) => track.stop());
-    }
-    setIsRecording(false);
-    setIsPaused(false);
-  };
-
-  // Pause recording
-  const pauseRecording = () => {
-    if (mediaRecorderRef.current && isRecording && !isPaused) {
-      // Request data from the recorder before pausing
-      mediaRecorderRef.current.requestData();
-      
-      // Add a small delay to ensure data is available
-      setTimeout(() => {
-        // Pause the recording
-        mediaRecorderRef.current.pause();
-        setIsPaused(true);
-        
-        // Create audio URL from current chunks for preview
-        if (recordedChunks.current.length > 0) {
-          const audioBlob = new Blob(recordedChunks.current, { type: 'audio/webm' });
-          const tempUrl = URL.createObjectURL(audioBlob);
-          
-          // Store in both local state and global ref
-          setAudioUrl(tempUrl);
-          audioRecordingRef.blob = audioBlob;
-          audioRecordingRef.url = tempUrl;
-          
-          console.log('Audio preview created:', tempUrl);
-        } else {
-          console.warn('No audio chunks available for preview');
-        }
-        
-        // Pause the speaking timer
-        dispatch(pauseTimer());
-      }, 100);
-    }
-  };
-
-  // Submit current recording
-  const submitRecording = () => {
-    stopRecording();
-    // Additional submission logic can be added here
-  };
-
-  // Start a new recording (discard current paused recording)
-  const startNewRecording = () => {
-    // Stop and cleanup current recording
-    if (mediaRecorderRef.current) {
-      mediaRecorderRef.current.stop();
-    }
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach((track) => track.stop());
-    }
-    
-    // Reset states
-    setIsRecording(false);
-    setIsPaused(false);
-    setAudioUrl(null);
-    
-    // Reset timer to start from 0
-    dispatch(resetTimer());
-    
-    // Start a fresh recording and set timer to start value
-    setTimeout(() => {
-      // Use the speaking time from props
-      dispatch(setStartTime(currentSpeakingTime));
-      
-      // Force the isStarted state so the timer shows and counts down
-      dispatch({ 
-        type: 'speakingTimer/tickPrepareTime'
+      streamRef.current.getTracks().forEach((track) => {
+        track.stop();
+        track.enabled = false;
       });
-      
+      streamRef.current = null;
+    }
+    stopRecognition();
+    setIsRecording(false);
+    setIsPaused(false);
+  };
+
+  const pauseRecording = () => {
+    if (!mediaRecorderRef.current || mediaRecorderRef.current.state !== 'recording') return;
+
+    mediaRecorderRef.current.requestData();
+    setTimeout(() => {
+      mediaRecorderRef.current?.pause();
+      setIsPaused(true);
+      dispatch(pauseTimer());
+
+      if (recordedChunks.current.length > 0) {
+        const audioBlob = new Blob(recordedChunks.current, { type: 'audio/webm' });
+        const tempUrl = URL.createObjectURL(audioBlob);
+        setAudioUrl(tempUrl);
+        audioRecordingRef.blob = audioBlob;
+        audioRecordingRef.url = tempUrl;
+      }
+      stopRecognition();
+    }, 100);
+  };
+
+  const startNewRecording = () => {
+    stopRecording();
+    setAudioUrl(null);
+    dispatch(resetTimer());
+    setTimeout(() => {
+      dispatch(setStartTime(currentSpeakingTime));
+      dispatch({ type: 'speakingTimer/tickPrepareTime' });
       startRecording();
     }, 100);
   };
 
-  // Handle retrying after timer is over
   const handleRetry = () => {
-    // Reset states
     setIsTimerOver(false);
     setIsPaused(false);
-    
-    // Reset and restart the timer
     dispatch(resetTimer());
-    
     setTimeout(() => {
-      // Use the speaking time from props
       dispatch(setStartTime(currentSpeakingTime));
-      
-      // Force the isStarted state so the timer shows and counts down
-      dispatch({ 
-        type: 'speakingTimer/tickPrepareTime'
-      });
-      
+      dispatch({ type: 'speakingTimer/tickPrepareTime' });
       startRecording();
     }, 100);
   };
 
-  // Handle manual start of recording when clicking the microphone
   const handleMicClick = () => {
-    if (isTimerOver) {
-      // If timer is over, treat as retry
-      handleRetry();
-    } else if (isPreparing) {
-      // Manually end prepare time and start speaking time
-      dispatch({ 
-        type: 'speakingTimer/setPrepareTime', 
-        payload: 0 
-      });
-      
-      // Set the speaking time using the value from props
+    if (!readyToRecord) return; // Don't allow recording if not ready
+    if (isTimerOver) return handleRetry();
+    if (isPreparing) {
+      dispatch({ type: 'speakingTimer/setPrepareTime', payload: 0 });
       dispatch(setStartTime(currentSpeakingTime));
-      
-      // Force the isStarted state
-      dispatch({ 
-        type: 'speakingTimer/tickPrepareTime'
-      });
+      dispatch({ type: 'speakingTimer/tickPrepareTime' });
     } else if (isRecording && !isPaused) {
-      // If recording, pause it
       pauseRecording();
     } else if (isPaused) {
-      // If paused, start a new recording (discarding the paused one)
       startNewRecording();
     } else if (!isRecording && isStarted) {
       startRecording();
     }
   };
 
-  // Don't render anything if we shouldn't show the microphone
+  // Add audio playback with echo prevention
+  const renderAudioPlayer = (url) => {
+    if (!url) return null;
+    
+    return (
+      <audio 
+        controls 
+        className="mt-2 w-full"
+        onPlay={(e) => {
+          // Reduce volume during playback to prevent echo
+          e.target.volume = 0.5;
+        }}
+      >
+        <source src={url} type="audio/webm;codecs=opus" />
+        Your browser does not support the audio element.
+      </audio>
+    );
+  };
+
   if (!showTimer) return null;
 
   return (
     <div className='speakingMic'>
       <h2>{status}</h2>
-
-      <span 
-        className={`${isRecording && !isPaused && !isSubmitted ? 'recordingMic' : ''}`} 
+      <span
+        className={`${isRecording && !isPaused && !isSubmitted ? 'recordingMic' : ''} ${!readyToRecord ? 'disabled-mic' : ''}`}
         onClick={handleMicClick}
+        style={{ opacity: readyToRecord ? 1 : 0.5, cursor: readyToRecord ? 'pointer' : 'not-allowed' }}
       >
-        {isTimerOver ? 
-          <FaRedo /> : 
-          (isRecording && !isPaused ? <FaPause /> : <FaMicrophone />)
-        }
+        {isTimerOver ? <FaRedo /> : isRecording && !isPaused ? <FaPause /> : <FaMicrophone />}
       </span>
-      
-      {isRecording && !isPaused && (
+
+      {isRecording && !isPaused && <p className='text-center'>Recording... Click to pause.</p>}
+
+      {isPaused && (
         <p className='text-center'>
-          You are currently speaking <br />
-          (पजमा थिच्नुहोस्, रेकरेर्डिङ् सकिएपछि )
+          Recording paused. Click mic to start a new recording.
+          {audioUrl && renderAudioPlayer(audioUrl)}
         </p>
       )}
 
-      {isPaused && (
-        <div className="paused-controls" style={{ marginTop: 15, textAlign: 'center' }}>
-          <p>Recording paused</p>
-          <p>Click the microphone to restart recording</p>
-          {audioUrl && (
-            <div style={{ marginTop: 10 }}>
-              <h3 className='text-center'>Preview of recorded audio:</h3>
-              <div style={{ margin: '10px auto', maxWidth: '300px' }}>
-                <audio controls src={audioUrl} style={{ width: '100%' }}></audio>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-
-      {isTimerOver && audioUrl && !isRecording && !isPaused && (
-        <div style={{ marginTop: 15, textAlign: 'center' }}>
-          <p>Click the redo icon above to record again</p>
-          <div style={{ marginTop: 10 }}>
-            <h3 className='text-center'>Your recording:</h3>
-            <div style={{ margin: '10px auto', maxWidth: '300px' }}>
-              <audio controls src={audioUrl} style={{ width: '100%' }}></audio>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {audioUrl && !isRecording && !isPaused && !isTimerOver && (
-        <div style={{ marginTop: 20 }}>
-          <h3 className='text-center'>Playback:</h3>
-          <audio controls src={audioUrl}></audio>
-        </div>
-      )}
     </div>
   );
 };

@@ -1,85 +1,91 @@
-import React, { useState } from 'react'
+import React, { useState ,useEffect} from 'react'
 import SideNavbar from '../../Common/sideNavbar/sideNavbar'
 import ChatPageNavbar from '../../Components/chatPageComponent/chatPageNavbar/chatPageNavbar'
 import ChatWithAi from '../../Components/chatPageComponent/chatWIthAi/chatWIthAi'
 import ChatBox from '../../Components/chatPageComponent/chatBox/chatBox'
 import './chatPage.css'
+import MobileNavbar from '../../Common/mobileNavbar/mobileNavbar'
 
 const chatPage = () => {  
-  const [menuBar, setMenuBar] = useState(false)
+  const [menuBar, setMenuBar] = useState(true)
   const [isSoundOn, setIsSoundOn] = useState(false)
   const [selectedScore, setSelectedScore] = useState(null)
   const [selectedContent, setSelectedContent] = useState(null)
+  const [selectedSection, setSelectedSection] = useState(null) 
   const [resetChat, setResetChat] = useState(false)
-  const [showChatWithAi, setShowChatWithAi] = useState(true);
-  const [messages, setMessages] = useState([]);
+  const [showChatWithAi, setShowChatWithAi] = useState(true)
+  const [messages, setMessages] = useState([])
 
-  //hamberg menu 
   const handleMenuBar = () => {
     setMenuBar(!menuBar)
   }
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth <= 750) {
+        setMenuBar(false)
+      } else {
+        setMenuBar(true)
+      }
+    }
+  
+    // Run on mount
+    handleResize()
+  
+    // Attach listener
+    window.addEventListener('resize', handleResize)
+  
+    // Cleanup on unmount
+    return () => {
+      window.removeEventListener('resize', handleResize)
+    }
+  }, [])
+  
 
-  // Function to reset chat
   const handleNewChat = () => {
     setSelectedScore(null)
     setSelectedContent(null)
+    setSelectedSection(null) // ✅ Reset
     setResetChat(true)
     setShowChatWithAi(true)
     setMessages([])
-    // Reset the reset flag after a short delay
     setTimeout(() => {
       setResetChat(false)
     }, 100)
   }
 
-  //pass sound state (on/off) from ChatPageNavbar to ChatWithAi
   const handleSoundToggle = (checked) => {
     setIsSoundOn(checked)
   }
 
-  // pass score and also content if selected from ChatPageNavbar to ChatWithAi
-  const handleScoreSelect = (score, content) => {
+  const handleScoreSelect = (score, content, section) => {
     setSelectedScore(score)
-    if (content) {
-      setSelectedContent(content)
-    }
-  }
- 
-  // pass content and  also score if selected from ChatPageNavbar to ChatWithAi
-  const handleContentSelect = (score, content) => {
-    setSelectedContent(content)
-    if (score) {
-      setSelectedScore(score)
-    }
-  }
-
-  // Function to update messages from either component
-  const handleUpdateMessages = (newMessages) => {
-    setMessages(newMessages);
+    if (content) setSelectedContent(content)
+    if (section) setSelectedSection(section) // ✅ Save section
   }
 
   return (
     <div>
-      <div className="hambergmenu" onClick={handleMenuBar}>
+      <div className="hambergmenu chat_hamberg" onClick={handleMenuBar}>
         <div className={`bar_1 ${menuBar ? 'bar_1_active' : ''}`}></div>
         <div className={`bar_2 ${menuBar ? 'bar_2_active' : ''}`}></div>
         <div className={`bar_3 ${menuBar ? 'bar_3_active' : ''}`}></div>
       </div>
+      <MobileNavbar/>
       <div className={`chatPage_container ${menuBar ? 'menuBar_active' : ''}`}>
         <div className="toggle_navbar">
           <SideNavbar onNewChat={handleNewChat} handleMenuBar={handleMenuBar} />
         </div>
-        <div style={{height:'100vh', overflowY:'scroll'}}>
+        <div style={{ height: '100vh', overflowY: 'hidden' }} className='chatPage_bg'>
           <ChatPageNavbar 
             handleMenuBar={menuBar}
             onSoundToggle={handleSoundToggle}
             onScoreSelect={handleScoreSelect}
-            onContentSelect={handleContentSelect}
           />
           <ChatWithAi 
             isSoundOn={isSoundOn}
             selectedScore={selectedScore}
             selectedContent={selectedContent}
+            selectedSection={selectedSection} 
             resetChat={resetChat}
             showChatWithAi={showChatWithAi}
             setShowChatWithAi={setShowChatWithAi}

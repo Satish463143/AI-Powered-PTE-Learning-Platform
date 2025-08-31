@@ -16,7 +16,7 @@ const ReButton = ({onNext, clearifyAnswer}) => {
     };
 
   return (
-    <div  className='answers_button'> 
+    <div className='answers_button'> 
         <button 
                 className='answers_button_button'
                 style={{background:'linear-gradient(to right, var(--orange), var(--purple))'}}

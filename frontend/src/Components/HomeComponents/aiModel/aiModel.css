@@ -1,0 +1,105 @@
+.aiModel_title{
+    text-align: center;
+}
+.aiModel_title p{
+    font-size: 55px;
+    line-height: 1.2;
+    font-weight: 500;
+}
+.aiModel_title span{
+    position: relative;
+    color: var(--red);
+    font-style: italic;
+}
+.aiModel_title span img{
+    position: absolute;
+    top: 30px;
+    right: 90px;
+}
+.aiModel_img{
+    width: 100%;
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 2rem 0;
+    background: url('../../../../src/assets/image/Giftyping-ezgif.com.gif');
+    background-size: 350px;
+    background-position: center;
+    background-repeat: no-repeat;
+}
+.aiModel_img img{
+    width: 100%;
+    height: auto;
+    object-fit: cover;
+    object-position: center;
+}
+.aiModel_button{
+    text-align: center;
+}
+.aiModel_button p{
+    border: 6px solid var(--yellow);
+    padding: 20px 40px;
+    border-radius: 50px;
+    background: var(--white);
+    display: inline-block;
+    font-size: 25px;
+    transition: all 0.3s ease;
+    font-weight: 500;
+}
+.aiModel_button p:hover{
+    background: var(--yellow);
+}
+@media(max-width: 1100px){
+    .aiModel_img{
+        background-size: 300px;
+    }
+}
+@media(max-width: 900px){
+    .aiModel_img{
+        background-size: 250px;
+    }
+    .aiModel_title p{
+        font-size: 40px;
+    }
+    .aiModel_title span img{
+        top: 25px;
+        right: 60px;
+    }
+
+}
+@media(max-width: 800px){
+    .aiModel_img{
+        background-size: 200px;
+    }
+}
+@media(max-width: 600px){
+    .aiModel_img{
+        background-size: 100%;
+        height: 500px;
+        margin:30px 0 20px 0  ;
+    }
+    .aiModel_title p{
+        font-size: 30px;
+    }
+    .aiModel_title span img{
+        top: 15px;
+        right: 40px;
+        width: 50px;
+    }
+    .ai-model-gif{
+        display: none;
+    }
+    .aiModel_button p{
+        display: block;
+        padding: 15px 0px;
+        font-size: 20px;
+    }
+}
+@media(max-width: 400px){
+    .aiModel_img{
+        background-size: 100%;
+        height: 400px;
+        margin:30px 0 20px 0  ;
+    }
+}

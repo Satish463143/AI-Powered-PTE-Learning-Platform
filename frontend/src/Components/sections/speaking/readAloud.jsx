@@ -2,37 +2,41 @@ import React, { useEffect } from 'react';
 import SpeakingTime from './speakingTime';
 import SpeakingMic, { audioRecordingRef } from './speakingMic';
 import AnswersButton from '../../../Common/answersButton/answersButton';
+import ScoreDisplay from '../../../Common/scoreDisplay/scoreDisplay';
 import { useDispatch, useSelector } from 'react-redux';
 import { setPrepareTime, setStartTime, resetTimer } from '../../../reducer/speakingTimerReducer';
 import { setTimer } from '../../../reducer/chatReducer';
-import '../sectionCss/sectionCss.css';
 import './readAloud.css';
+import Swal from 'sweetalert2';
 
 // Constants for timer durations
 const PREPARE_TIME = 40; // seconds
 const SPEAKING_TIME = 40; // seconds
 
-const ReadAloud = ({ data, onSubmit: parentSubmit, onNext: parentNext, showTimer = true, questionId }) => {
+const ReadAloud = ({ data, onSubmit: parentSubmit, onNext: parentNext, showTimer = true, questionId, resultData }) => {
   const dispatch = useDispatch();
   const submittedQuestions = useSelector(state => state.chat.submittedQuestions);
   const initializedTimers = useSelector(state => state.chat.initializedTimers);
   const isSubmitted = questionId && submittedQuestions[questionId];
   const isTimerInitialized = questionId && initializedTimers[questionId];
 
-  // Dummy data for demonstration
-  const dummyData = {
-    paragraph:
-      "The free phone is the Samsung U740 handheld {{blank1}} device, which has MP3, {{blank2}}, text-message and instant-message {{blank3}}.",
-  };
+  // Extract paragraph from data, handling different data structures
+  const activeData = data?.question?.paragraph || data?.result?.question?.paragraph;
 
-  // Use provided data or fallback to dummy data
-  const activeData = data && data.paragraph ? data : dummyData;
+  useEffect(() => {
+    if (!data) {
+      console.error('No data provided to ReadAloud component');
+      return;
+    }
+    if (!activeData) {
+      console.error('No paragraph found in data:', data);
+    }
+  }, [data, activeData]);
 
   // Set timers on mount, only if the question is not submitted and should show timer
   useEffect(() => {
     if (showTimer && !isSubmitted) {
       // Initialize chat timer (needed for submit button to work)
-      // We need this small timer for the submit button to work, but we don't display it
       if (!isTimerInitialized && questionId) {
         dispatch(setTimer({ duration: 40, questionId })); 
       }
@@ -61,18 +65,55 @@ const ReadAloud = ({ data, onSubmit: parentSubmit, onNext: parentNext, showTimer
         audioUrl: audioRecordingRef.url,
         questionId
       };
+
+      // Add the question data to the submission
+      const submissionData = {
+        answer: audioData,
+        originalQuestion: {
+          paragraph: activeData,
+          section: data?.section || 'Speaking',
+          questionType: data?.questionType || 'readAloud'
+        }
+      };
       
-      parentSubmit(audioData);
+      parentSubmit(submissionData);
+    }
+  };
+
+  const handleNext = () => {
+    // Reset audio recording ref
+    if (audioRecordingRef) {
+      audioRecordingRef.blob = null;
+      audioRecordingRef.url = null;
+    }
+
+    // Reset timers
+    if (showTimer) {
+      dispatch(resetTimer());
+      dispatch(setPrepareTime(PREPARE_TIME));
+    }
+
+    if (parentNext) {
+      parentNext();
     }
   };
 
   return (
-    <div className={isSubmitted ? 'disabled_section' : ''}>
+    <div className={`read-aloud-container ${isSubmitted ? 'disabled_section' : ''}`}>
       <SpeakingTime isSubmitted={isSubmitted} showTimer={showTimer} />
-      <p>Look at the text below. In 40 seconds, you must read this text aloud as naturally and clearly as possible. You have 40 seconds to read aloud.</p>
       
-      <div style={{ margin: '20px 0' }}  className='border-dotted border'>
-        <p style={{padding:'10px'}}>{activeData.paragraph}</p>
+      <div className="read-aloud-instructions">
+        <p>Look at the text below. In {PREPARE_TIME} seconds, you must read this text aloud as naturally and clearly as possible. You have {SPEAKING_TIME} seconds to read aloud.</p>
+      </div>
+      
+      <div className="read-aloud-text border-dotted border">
+        {activeData ? (
+          <p className="text-content" style={{padding:'10px'}}>{activeData}</p>
+        ) : (
+          <p className="error-text" style={{padding:'10px', color: 'red'}}>
+            {data ? 'Error loading question text' : 'Loading question text...'}
+          </p>
+        )}
       </div>
 
       <SpeakingMic 
@@ -81,8 +122,16 @@ const ReadAloud = ({ data, onSubmit: parentSubmit, onNext: parentNext, showTimer
         speakingTime={SPEAKING_TIME}
       />
 
+      {/* Score Display */}
+      <ScoreDisplay score={resultData?.overallScore} isSubmitted={isSubmitted} />
+
       <div className="read-aloud-answers-button">
-        <AnswersButton onSubmit={handleSubmit} onNext={parentNext} questionId={questionId} />
+        <AnswersButton 
+          onSubmit={handleSubmit} 
+          onNext={handleNext} 
+          questionId={questionId}
+          disabled={isSubmitted}
+        />
       </div>
     </div>
   );

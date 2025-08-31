@@ -1,41 +1,351 @@
-.ai_recommendation{
-    margin-top: 50px;
-}
-.ai_recommendation_tabs{
-    width: 100%;
-    background: var(--light_blue);
-    border-radius: 10px;
-    border-radius: 40px;
-    padding: 20px 50px;
-}
-.ai_recommendation_tab{
-    display: flex;
-    gap: 30px;  
-    align-items: center;
-
-}
-.ai_recommendation_tab button{
-    background: var(--semi_blue);
-    padding: 5px 40px;
-    border-radius: 20px;
-    font-weight: 500;
-    font-size: 15px;
-    cursor: pointer;
-}
-.ai_recommendation_tabs_content{
-    height: 400px;
-    overflow-y: scroll;
-    scrollbar-width: thin;
-    scrollbar-color: var(--semi_blue) var(--light_blue);
-    width: 100%;
-    background: var(--white);
-    text-align: center;
-    margin-top: 20px;
+.ai_recommendation {
+  margin-top: 50px;
+  transition: 0.3s ease-in-out;
 }
 
+.ai_recommendation_tabs {
+  width: 100%;
+  background: var(--light_blue);
+  border-radius: 40px;
+  padding: 20px 50px;
+}
+
+.ai_recommendation_content h2 {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+/* Tab Buttons - Visible on large screens */
+.ai_recommendation_tab {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: center;
+}
+
+.ai_recommendation_tab button {
+  background: var(--semi_blue);
+  padding: 5px 40px;
+  border-radius: 20px;
+  font-weight: 500;
+  font-size: 15px;
+  cursor: pointer;
+  border: none;
+  transition: background 0.3s ease;
+}
+
+.ai_recommendation_tab button:hover {
+  background: var(--dark_blue);
+  color: white;
+}
+
+.active_tab {
+  background: var(--dark_blue);
+  color: white;
+}
+
+/* XP Bar Styling */
+.xp_bar {
+  position: relative;
+  width: 100%;
+  max-width: 500px;
+  height: 28px;
+  margin: 10px auto;
+  background: #737373;
+  border-radius: 20px;
+  overflow: hidden;
+}
+
+.xp_bar_fill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  background: #FFA500;
+  transition: width 0.3s ease-in-out;
+}
+
+.xp_bar_score {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: #333;
+  font-weight: 500;
+  z-index: 1;
+}
+
+/* Tab Content Area */
+.ai_recommendation_tabs_content {
+  height: 400px;
+  overflow-y: scroll;
+  scrollbar-width: thin;
+  scrollbar-color: var(--semi_blue) var(--light_blue);
+  width: 100%;
+  background: var(--white);
+  text-align: center;
+  margin-top: 20px;
+  border-radius: 10px;
+  padding: 15px;
+}
+
+/* Dropdown - Hidden by default */
+.ai_recommendation_dropdown {
+  display: none;
+  margin-top: 100px;
+}
+
+.feedback-section {
+  margin-bottom: 30px;
+  padding: 20px;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.feedback-section h3 {
+  color: #2c3e50;
+  font-size: 1.4em;
+  margin: 0 0 15px;
+  padding-bottom: 10px;
+  border-bottom: 2px solid var(--semi_blue);
+}
+
+.feedback_item {
+  margin-bottom: 25px;
+  padding: 15px;
+  background: white;
+  border-radius: 6px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.feedback_item h4 {
+  color: #34495e;
+  margin-bottom: 15px;
+  font-size: 1.2rem;
+  border-bottom: 2px solid #e9ecef;
+  padding-bottom: 8px;
+}
+
+.feedback_points {
+  color: #555;
+}
+
+.feedback_point {
+  margin-bottom: 12px;
+  line-height: 1.6;
+  padding-left: 20px;
+  position: relative;
+}
+
+.feedback_point:before {
+  content: "•";
+  position: absolute;
+  left: 0;
+  color: #3498db;
+}
+
+.feedback_point strong {
+  color: #2c3e50;
+  font-weight: 600;
+}
+
+.feedback_point ul {
+  margin-top: 10px;
+  margin-left: 20px;
+  list-style-type: disc;
+}
+
+.feedback_point li {
+  margin-bottom: 8px;
+}
+
+.feedback-content {
+  color: #333;
+  line-height: 1.6;
+}
+
+.feedback-content p {
+  margin-bottom: 15px;
+}
+
+/* Section Headers */
+.feedback_content h2 {
+  color: #2c3e50;
+  font-size: 1.8em;
+  margin: 25px 0 15px;
+  padding-bottom: 10px;
+  border-bottom: 2px solid var(--semi_blue);
+}
+
+.feedback_content h3 {
+  color: #34495e;
+  font-size: 1.4em;
+  margin: 20px 0 12px;
+}
+
+/* Score Display */
+.feedback_content .score_display {
+  background: #f8f9fa;
+  padding: 10px 15px;
+  border-radius: 8px;
+  margin: 10px 0;
+  font-family: monospace;
+  color: #2c3e50;
+}
+
+/* Lists Styling */
+.feedback_content ul {
+  list-style-type: none;
+  padding-left: 0;
+  margin: 15px 0;
+}
+
+.feedback_content ul li {
+  position: relative;
+  padding-left: 25px;
+  margin-bottom: 12px;
+  line-height: 1.6;
+}
+
+.feedback_content ul li::before {
+  content: "•";
+  position: absolute;
+  left: 8px;
+  color: var(--semi_blue);
+  font-size: 18px;
+}
+
+/* Nested Lists */
+.feedback_content ul ul {
+  margin: 8px 0 8px 15px;
+}
+
+.feedback_content ul ul li::before {
+  content: "○";
+  font-size: 14px;
+}
+
+.feedback_content ul ul li {
+  padding-left: 20px;
+  margin-bottom: 8px;
+  font-size: 0.95em;
+}
+
+/* Action Items */
+.feedback_content .action_items {
+  background: #f1f7ff;
+  padding: 15px 20px;
+  border-left: 4px solid var(--semi_blue);
+  margin: 15px 0;
+  border-radius: 0 8px 8px 0;
+}
+
+.feedback_content .action_items h4 {
+  color: var(--dark_blue);
+  margin-bottom: 10px;
+}
+
+/* Score Analysis */
+.feedback_content .score_analysis {
+  background: #fff8f1;
+  padding: 15px;
+  border-radius: 8px;
+  margin: 15px 0;
+}
+
+/* Emphasis and Highlights */
+.feedback_content strong {
+  color: var(--dark_blue);
+  font-weight: 600;
+}
+
+.feedback_content em {
+  font-style: italic;
+  color: #666;
+}
+
+/* Warning/Critical Sections */
+.feedback_content .warning {
+  background: #fff5f5;
+  padding: 15px;
+  border-left: 4px solid #e74c3c;
+  margin: 15px 0;
+  border-radius: 0 8px 8px 0;
+}
+
+/* Section Emojis */
+.feedback_content .section_emoji {
+  font-size: 1.5em;
+  margin-right: 8px;
+  vertical-align: middle;
+}
+
+/* Dividers */
+.feedback_content hr {
+  border: none;
+  border-top: 1px solid #eee;
+  margin: 20px 0;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .feedback_content {
+    padding: 15px;
+  }
+  
+  .feedback_content h2 {
+    font-size: 1.5em;
+  }
+  
+  .feedback_content h3 {
+    font-size: 1.2em;
+  }
+}
+
+/* Responsive Styles */
+
+/* Large Tablets & Laptops */
 @media (max-width: 1450px) {
-    .ai_recommendation{
-        margin-left: 50px;
-        transition: 0.3s ease-in-out;
-    }
+  .ai_recommendation_tab {
+    gap: 20px;
+  }
+}
+
+/* Medium Tablets */
+@media (max-width: 1024px) {
+  .ai_recommendation_tab button {
+    padding: 8px 30px;
+    font-size: 14px;
+  }
+
+  .ai_recommendation_tabs {
+    padding: 20px 30px;
+  }
+}
+
+/* Small Devices: Show dropdown, hide buttons */
+@media (max-width: 770px) {
+  .ai_recommendation_tab {
+    display: none !important;
+  }
+
+  .ai_recommendation_dropdown {
+    display: block !important;
+    max-width: 300px;
+    margin: 20px auto;
+  }
+}
+
+/* Mobile Phones */
+@media (max-width: 767px) {
+  .ai_recommendation_tab button {
+    width: 100%;
+    padding: 10px 0;
+    font-size: 14px;
+  }
+
+  .ai_recommendation_tabs {
+    padding: 20px;
+  }
 }

@@ -1,0 +1,119 @@
+.ready_container{
+    display: grid;
+    grid-template-columns: 40% 60%;
+    justify-content: space-between;
+    margin: 50px 0px 0px 0;
+}
+.ready_content{
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+.ready_content h2{
+    font-size: 65px;
+    text-align: center;
+    line-height: 1.2;
+    font-style: italic;
+    font-weight: 500;    
+}
+.ready_button{
+    border: 6px solid var(--light_pink);
+    width: 80%;
+    text-align: center;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-top: 30px;
+    border-radius: 50px;
+    background: var(--white);
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+.ready_button:hover{
+    background: var(--light_pink);
+}
+.ready_button p{
+    font-size: 25px;
+    font-weight: 500;
+    padding: 15px 0;
+}
+.ready_star_content_flex{
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+.ready_star_content_flex p{
+    font-size: 25px;
+    font-weight: 500;
+    max-width: 400px;
+    color: var(--dots);
+}
+.ready_star_content_2{
+    display: flex;
+    justify-content: center;
+}
+.ready_star_content_3{
+    display: flex;
+    justify-content: end;
+}
+@media(max-width: 1050px){
+    .ready_content h2{
+        font-size: 45px;
+    }
+    .ready_img img{
+        width: 90%;
+        margin: 0 auto;
+    }
+    .ready_button{
+        width: 100%;
+    }
+
+}
+@media(max-width: 800px){
+    .ready_container{
+        grid-template-columns: 50% 50%;
+    }
+    .ready_content h2{
+        font-size: 35px;
+    }
+    .ready_button p{
+        font-size: 22px;
+        padding: 10px 0;
+    }
+    .ready_star_content_flex p{
+        font-size: 22px;
+    }
+}
+@media(max-width: 600px){
+    .ready_content h2{
+        font-size: 30px;
+    }
+    .ready_button p{
+        font-size: 20px;
+        padding: 10px 0;
+    }
+    .ready_button{
+        border: 4px solid var(--light_pink);
+    }
+    .ready_star_content_2,.ready_star_content_3,.ready_star_content_flex{
+        justify-content: start;
+        margin-top: 10px;
+    }
+    .ready_star_content_flex p{
+        font-size: 18px;
+    }
+}
+@media(max-width: 550px){
+    .ready_container{
+        grid-template-columns: 100%;
+    }
+    .ready_content h2 {
+        max-width: 360px;
+        width: 100%;
+    }
+    .ready_button{
+        width: 100%;
+        max-width: 360px;
+    }
+}

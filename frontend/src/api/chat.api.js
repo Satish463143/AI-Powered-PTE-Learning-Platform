@@ -12,16 +12,19 @@ export const chatApi = createApi({
             
         }
     }),
+
+    tagTypes: ['Chat'],
     endpoints: (builder) => ({
         getChat: builder.mutation({
             query: (message) => ({
-                url: '/chat',
+                url: '/aiChat/chat',
                 method: 'POST',
                 body: message,
                 headers:()=>([
-                    {"Content-Type":"multipart/form-data"}
+                    {"Content-Type":"application/json"}
                 ])
             }),
+            invalidatesTags: ['Chat']
         }),
     }),
 });

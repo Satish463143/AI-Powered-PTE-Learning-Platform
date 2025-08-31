@@ -1,37 +1,34 @@
 import React, { useState } from 'react'
 import { motion } from 'framer-motion'
 import { FaGoogle, FaFacebook } from 'react-icons/fa'
-import { Link,useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import './login.css'
 import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as Yup from "yup";
 import { TextInputComponent } from '../../Common/form/form'
-import { AuthApi, useLoginMutation } from '../../api/auth.api'
 import { useDispatch } from 'react-redux'
+import { useLoginMutation, AuthApi } from '../../api/auth.api'
 import { setLoggedInUser } from '../../reducer/userReducer'
-import { toast } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
+import { toast } from 'react-toastify'
 
-const login = () => {
-    const dispatch = useDispatch()
+const Login = () => {
+  const dispatch = useDispatch()
     const [loading, setLoading] = useState(false);
     const [rememberMe, setRememberMe] = useState(false);
     const navigate = useNavigate()
-    const [loginUser] = useLoginMutation();
+    const [loginUser] = useLoginMutation()
 
     const loginDTO = Yup.object({
         email: Yup.string().email().required(),
-        password: Yup.string().required()
+        password: Yup.string().required()            
       });
     
     const {  handleSubmit, control,formState: { errors }, } = useForm({
     resolver: yupResolver(loginDTO),
     });
 
-  
-
-    const login = async(data)=>{
+    const handleLogin = async(data)=>{
         setLoading(true)
         try{
           const response = await loginUser(data).unwrap();
@@ -42,8 +39,7 @@ const login = () => {
           dispatch(AuthApi.util.invalidateTags(['Auth']));
           setTimeout(() => {
             navigate('/');
-          }, 500); 
-
+          }, 500);
         }catch(exception){
           toast.error(exception.data?.message || "Login failed");
         }finally{
@@ -61,7 +57,7 @@ const login = () => {
       >
         <h1 className="auth-page__title">Welcome Back</h1>
         
-        <form onSubmit={handleSubmit(login)} className="auth-page__form">
+        <form onSubmit={handleSubmit(handleLogin)} className="auth-page__form">
           <div className="auth-page__form-group">
             <label htmlFor="email" className="auth-page__label">
               Email Address
@@ -113,7 +109,7 @@ const login = () => {
             whileTap={{ scale: 0.98 }}
             disabled={loading}
           >
-            Sign In
+            {loading ? 'Signing In...' : 'Sign In'}
           </motion.button>
         </form>
         
@@ -145,4 +141,4 @@ const login = () => {
   )
 }
 
-export default login
+export default Login

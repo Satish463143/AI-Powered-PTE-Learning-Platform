@@ -2,9 +2,11 @@ const app = require("./src/config/express.config");
 require("dotenv").config();
 const http = require("http")
 
+
 const server = http.createServer(app)
 
-const port = process.env.PORT || 3000;
+
+const port = process.env.PORT || 3005;
 
 server.listen( port, 'localhost',(error)=>{
     if(error){

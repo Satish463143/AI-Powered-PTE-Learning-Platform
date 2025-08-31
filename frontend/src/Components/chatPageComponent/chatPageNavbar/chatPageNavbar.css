@@ -1,95 +1,107 @@
-.sound_toggle_btn{
+/* ================= Base Styles ================= */
+
+.sound_toggle_btn {
     visibility: hidden;
 }
-.chatPageNavbar_sound{
+
+.chatPageNavbar {
     display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
 }
-.chatPageNavbar_sound p{
+
+.chatPageNavbar_sound {
+    display: flex;
+    margin-left: 0;
+}
+
+.chatPageNavbar_sound p {
     font-size: 22px;
     font-weight: 500;
 }
+
 .sound_toggle_btn + label {
     display: flex;
     align-items: center;
     cursor: pointer;
     color: var(--black);
     position: relative;
-    
 }
-.sound_toggle_btn + label::before{    
+
+.sound_toggle_btn + label::before {
     content: '';
     height: 25px;
     width: 45px;
     border-radius: 15px;
-    border: 1px solid var(--blue);
+    border: 1px solid var(--green);
     margin-right: 0.5em;
     transition: 0.4s ease-in-out;
 }
-.sound_toggle_btn + label::after{
-   content: '';
-   width: 21px;
-   height: 21px;
-   border-radius: 50%;
-   background-color: var(--blue);
-   position: absolute;
-   left: 2px;
-   transition: 0.4s ease-in-out;
+
+.sound_toggle_btn + label::after {
+    content: '';
+    width: 21px;
+    height: 21px;
+    border-radius: 50%;
+    background-color: var(--green);
+    position: absolute;
+    left: 2px;
+    transition: 0.4s ease-in-out;
 }
-.sound_toggle_btn:checked + label::after{
+
+.sound_toggle_btn:checked + label::after {
     transform: translateX(92%);
-    right: 2px;
     background-color: var(--white);
 }
-.sound_toggle_btn:checked + label::before{
-    background-color: var(--blue);
+
+.sound_toggle_btn:checked + label::before {
+    background-color: var(--green);
 }
-.chatPageNavbar{
+
+.chatPageNavbar_video_tutor {
     display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-.chatPageNavbar_video_tutor{
-    display: flex;
+    cursor: pointer;
     align-items: center;
     justify-content: space-between;
-    background: linear-gradient(to right, var(--blue), var(--orange));
     border-radius: 50px;
+    border: 1px solid var(--black);
     width: 400px;
     padding: 10px 20px;
 }
-.chatPageNavbar_video_tutor p{
+
+.chatPageNavbar_video_tutor p {
     font-size: 28px;
     font-weight: 500;
+    opacity: 0.5;
 }
-.chatPageNavbar_profile_section{
+
+.chatPageNavbar_profile_section {
     display: flex;
     align-items: center;
     gap: 20px;
 }
-.profile_img img{
+
+.profile_img img {
     width: 50px;
 }
-@media (max-width: 1450px) {
-    .chatPageNavbar_sound{
-        margin-left: 50px;
-        transition: 0.3s ease-in-out;
-    }
-    .chatPageNavbar_active{
-        margin-left: 0px;
-    }
-}
-.meter{
+
+.meter {
     position: relative;
 }
-.meter_details{
+
+.meter span {
+    cursor: pointer;
+}
+
+.meter_details {
     visibility: hidden;
     position: absolute;
     top: 80px;
-    left: 0;
-    width: 100%;
-    min-width: 600px;
-    transform: translateX(-80%);
-    height: auto;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 90%;
+    max-width: 600px;
     background-color: var(--light_blue);
     border-radius: 30px;
     padding: 20px;
@@ -98,33 +110,34 @@
     align-items: center;
     transition: 0.3s ease-in-out;
     z-index: 11;
+    box-sizing: border-box;
 }
-.meter span{
-    cursor: pointer;
-}
+
 .meter_details_active {
     visibility: visible;
 }
-.score{
+
+.score {
     width: 100%;
 }
-.score h3, .questions h3{
+
+.score h3,
+.questions h3 {
     text-align: center;
     font-weight: 500;
     font-size: 20px;
-
 }
+
 .scores_btn {
     display: flex;
-    gap: 10px;    
+    gap: 10px;
     align-items: center;
     flex-wrap: wrap;
-    justify-content: center; 
-    margin-top: 10px;
-    margin-bottom: 10px; 
-
+    justify-content: center;
+    margin: 10px 0;
 }
-.scores_btn button{
+
+.scores_btn button {
     max-width: 100px;
     width: 100%;
     background: var(--white);
@@ -133,20 +146,24 @@
     padding: 5px 0;
     transition: 0.3s ease-in-out;
 }
-.selected , .active_tab{
-    background: var(--light_green) !important;
+
+.selected,
+.active_tab {
+    background: var(--red) !important;
     color: var(--white);
     transition: 0.3s ease-in-out;
 }
-.meter_content p{
-    background: linear-gradient(to right, var(--blue), var(--orange));
+
+.meter_content p {
+    background: var(--yellow);
     border-radius: 50px;
     padding: 15px 70px;
     font-weight: 500;
     font-size: 20px;
     margin-top: 15px;
 }
-.tabs{
+
+.tabs {
     margin-top: 20px;
     width: 100%;
     display: flex;
@@ -154,16 +171,18 @@
     align-items: center;
     gap: 10px;
 }
-.tab-content{
+
+.tab-content {
     justify-content: center;
     width: 100%;
     display: flex;
-    gap: 10px;    
+    gap: 10px;
     align-items: center;
     flex-wrap: wrap;
     margin-top: 10px;
 }
-.tabs button{
+
+.tabs button {
     background: var(--white);
     max-width: 100px;
     width: 100%;
@@ -171,15 +190,16 @@
     text-align: center;
     padding: 5px 0;
 }
-.tab-content p{
-    /* column-width :180PX; */
+
+.tab-content p {
     background: var(--white);
-    padding: 10px ;
+    padding: 10px;
     border-radius: 5px;
     font-size: 15px;
     text-align: center;
     cursor: pointer;
 }
+
 .content-item {
     padding: 8px 12px;
     margin: 4px 0;
@@ -188,7 +208,8 @@
     transition: all 0.3s ease;
 }
 
-.content-item:hover, .scores_btn button:hover {
+.content-item:hover,
+.scores_btn button:hover {
     background-color: #f0f0f0;
 }
 
@@ -197,4 +218,135 @@
     font-weight: 500;
 }
 
+/* ================= Responsive ================= */
 
+/* Tablet View */
+@media (max-width: 1024px) {
+    .chatPageNavbar_video_tutor {
+        width: 300px;
+        padding: 8px 15px;
+    }
+    .chatPageNavbar_sound {
+    padding-top: 40px;
+
+    }
+    .chatPageNavbar_sound p {
+        font-size: 18px;
+        font-weight: 400;
+    }
+    
+
+    .chatPageNavbar_video_tutor p {
+        font-size: 22px;
+    }
+
+    .chatPageNavbar_profile_section {
+        gap: 15px;
+    }
+
+    .meter_details {
+        max-width: 500px;
+        transform: translateX(-50%);
+    }
+
+    .meter_content p {
+        padding: 10px 40px;
+        font-size: 18px;
+    }
+
+    .score h3, .questions h3 {
+        font-size: 18px;
+    }
+
+    .profile_img img {
+        width: 40px;
+    }
+
+}
+
+/* Mobile View */
+@media (max-width: 768px) {
+    .chatPageNavbar {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 15px;
+    }
+
+    .chatPageNavbar_video_tutor {
+        width: 100%;
+        padding: 6px 12px;
+    }
+
+    .chatPageNavbar_video_tutor p {
+        font-size: 18px;
+    }
+
+    .profile_img img {
+        width: 35px;
+    }
+
+    .chatPageNavbar_profile_section {
+        gap: 10px;
+    }
+
+    .chatPageNavbar_sound {
+        margin-left: 0px;
+        margin-top: -10px;
+    }
+
+    .sound_toggle_btn + label::before {
+        width: 40px;
+        height: 22px;
+    }
+
+    .sound_toggle_btn + label::after {
+        width: 18px;
+        height: 18px;
+    }
+
+    .sound_toggle_btn:checked + label::after {
+        transform: translateX(85%);
+    }
+
+    .meter_details {
+        position: fixed;
+        top: 60px;
+        left: 0;
+        right: 0;
+        width: auto;
+        max-width: none;
+        padding: 15px;
+        margin: 0 10px; /* Add side margin so it doesn't stick to edges */
+        transform: none;
+        z-index: 1000; /* Higher than other elements */
+    }
+
+    .meter_content p {
+        font-size: 14px;
+        padding: 10px 30px;
+    }
+    .meter svg {
+        width: 30px;
+        height: 30px;
+      }
+
+    .tabs {
+        flex-direction: column;
+        gap: 5px;
+    }
+
+    .tab-content {
+        flex-direction: column;
+    }
+
+    .tabs button,
+    .tab-content p,
+    .scores_btn button {
+        width: 100%;
+        max-width: 100%;
+    }
+    .signup_button {
+        font-size: 13px;
+        padding: 4px 10px;
+      }
+}

@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react'
 import { useDispatch, useSelector } from 'react-redux';
 import { submit, useHint, nextQuestion } from '../../reducer/chatReducer'; 
+import { clearCurrentQuestion } from '../../reducer/questionAudioReducer';
 import './answersButton.css'
 
 const AnswersButton = ({ onSubmit, onNext, questionId, disabled = false }) => {
@@ -47,6 +48,7 @@ const AnswersButton = ({ onSubmit, onNext, questionId, disabled = false }) => {
     const handleNext = () => {
         if (disabled) return;
         dispatch(nextQuestion());
+        dispatch(clearCurrentQuestion());
         if (onNext) {
             onNext();
         }

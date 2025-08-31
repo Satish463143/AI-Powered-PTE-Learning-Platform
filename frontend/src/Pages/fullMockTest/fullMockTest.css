@@ -1,0 +1,430 @@
+.mock-question-container {
+  position: relative;
+}
+
+.question {
+  width: 100%;
+}
+
+.speaking-wrapper {
+  padding: 20px;
+  max-width: 1000px;
+  overflow-y: auto;
+  margin: 0 auto;
+  height: calc(100vh - 110px);
+  box-sizing: border-box;
+  padding-bottom: 80px; 
+}
+
+.next_button{
+  position: fixed;
+  bottom: 0px;
+  background-color: #c3d4e7;
+  width: 100%;
+  padding: 10px;
+  z-index: 1000;
+  box-shadow: 0 -2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.full_mockTest_navbar {  
+  background-color: #f5f5f5;
+  border-bottom: 1px solid #ddd;
+  width: 100%;
+}
+.full_mockTest_menu{
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.mockTest_navbar_right {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+}
+
+.full_mockTest_time {
+  font-size: 1.2rem;
+  font-weight: bold;
+  color: #333;
+  border-radius: 4px;
+  text-align: center;
+}
+
+.total_question {
+  font-size: 1rem;
+  border-radius: 4px;
+  min-width: 70px;
+  text-align: center;
+}
+
+/* Break Screen Styles */
+.break-content {
+  text-align: center;
+  padding: 30px;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  max-width: 600px;
+}
+
+.break-content h2 {
+  color: #2c3e50;
+  margin-bottom: 20px;
+}
+
+.break-content p {
+  margin-bottom: 15px;
+  color: #5a6268;
+  line-height: 1.5;
+}
+
+.break-buttons {
+  display: flex;
+  gap: 15px;
+  margin-top: 30px;
+}
+
+.skip-btn {
+  background-color: #6c757d;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+}
+
+/* Final Save Screen Styles */
+.final-save-container {
+  text-align: center;
+  padding: 40px;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  max-width: 600px;
+  margin: 40px auto;
+}
+
+.final-save-container h2 {
+  color: #28a745;
+  margin-bottom: 20px;
+}
+
+.final-save-container p {
+  margin-bottom: 15px;
+  color: #5a6268;
+  line-height: 1.5;
+}
+
+.save-actions {
+  display: flex;
+  justify-content: center;
+  gap: 15px;
+  margin-top: 30px;
+}
+
+.primary-btn {
+  background-color: #384e66;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 4px;
+  width: 200px;
+  cursor: pointer;
+ 
+}
+
+.secondary-btn {
+  background-color: #6c757d;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 4px;
+  cursor: pointer;
+} 
+ 
+.content_table{
+  width: 60%;
+}
+.content_table table{
+  width: 100%;
+  border: 1px solid #ddd;
+  border-collapse: collapse;
+  margin-top: 20px;
+
+}
+.content_table table td{
+  border: 1px solid #ddd;
+  padding: 8px;
+  text-align: left;
+}
+.disabled_btn{
+  background-color: #ddd;
+  pointer-events: none;
+  cursor: not-allowed !important;
+  border-radius: 5px;
+  opacity: 0.6;
+  padding: 10px;
+  margin-top: 10px;
+}
+.microphone_btn button{
+  margin-right: 10px;
+}
+.microphone_box{
+  width: 50%;
+  margin: 20px auto;
+  border: 1px solid #ddd;
+  padding: 10px;
+  border-radius: 5px;
+}
+
+.recording_div {
+  width: 100%;
+  height: 20px;
+  background-color: #f0f0f0;
+  border-radius: 10px;
+  margin: 10px 0;
+  overflow: hidden;
+}
+
+.progress-bar {
+  height: 100%;
+  background-color: #4CAF50;
+  transition: width 1s linear;
+}
+
+/* AboutMe Recording Styles */
+.recording_aboutMe {
+  margin-top: 20px;
+  padding: 15px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  background-color: #f9f9f9;
+}
+
+.recording_aboutMe p.record-title {
+  font-weight: bold;
+  font-size: 18px;
+}
+
+.recording_aboutMe h4.status-label {
+  margin-top: 10px;
+  color: #555;
+}
+
+.recording_aboutMe h3.status-text {
+  margin-bottom: 10px;
+  font-weight: bold;
+}
+
+.recording_aboutMe h3.preparing {
+  color: #0d6efd;
+}
+
+.recording_aboutMe h3.recording {
+  color: #00e932;
+}
+
+.progress-bar-container {
+  width: 100%;
+  background-color: #e0e0e0;
+  border-radius: 4px;
+  margin-top: 10px;
+  height: 20px;
+  position: relative;
+  overflow: hidden;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.5s ease-in-out;
+}
+
+.progress-bar-fill.preparing {
+  background-color: #4dabf7;
+}
+
+.progress-bar-fill.recording {
+  background-color: #00e932;
+}
+
+.recording-indicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 10px;
+}
+
+.recording-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background-color: #dc3545;
+  margin-right: 8px;
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0% { opacity: 1; }
+  50% { opacity: 0.3; }
+  100% { opacity: 1; }
+}
+
+/* Audio Playing Box Styles */
+.audio_playing_box {
+  margin-top: 20px;
+  margin-bottom: 20px;
+  border: 1px solid #e0e0e0;
+  border-radius: 12px;
+  padding: 18px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  background-color: #fff;
+}
+
+.audio_header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 12px;
+  justify-content: space-between;
+}
+
+.audio_title_container {
+  display: flex;
+  flex-direction: column;
+}
+
+.audio_title {
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0 0 4px 0;
+}
+
+.audio_status {
+  font-size: 14px;
+  font-weight: 500;
+  margin: 0;
+}
+
+.audio_status_waiting {
+  color: #f39c12;
+}
+
+.audio_status_playing {
+  color: #3498db;
+}
+
+.audio_status_complete {
+  color: #2ecc71;
+}
+
+.audio_time {
+  padding: 4px 10px;
+  border-radius: 4px;
+  background-color: rgba(52, 152, 219, 0.1);
+  color: #3498db;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.audio_icon_container {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.audio_icon_waiting {
+  background-color: rgba(243, 156, 18, 0.2);
+}
+
+.audio_icon_playing {
+  background-color: rgba(52, 152, 219, 0.2);
+}
+
+.audio_icon_complete {
+  background-color: rgba(46, 204, 113, 0.2);
+}
+
+.wave_container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 24px;
+}
+
+.wave_bar {
+  width: 3px;
+  margin-right: 2px;
+  border-radius: 1px;
+}
+
+.audio_progress_container {
+  position: relative;
+  height: 8px;
+  width: 100%;
+}
+
+.audio_progress_bg {
+  position: absolute;
+  height: 8px;
+  width: 100%;
+  background-color: #f1f1f1;
+  border-radius: 4px;
+}
+
+.audio_progress_fill {
+  position: absolute;
+  height: 8px;
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+.audio_progress_waiting {
+  width: 0%;
+  background-color: #f39c12;
+}
+
+.audio_progress_playing {
+  background-color: #3498db;
+}
+
+.audio_progress_complete {
+  width: 100%;
+  background-color: #2ecc71;
+}
+.textArea_button{
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 10px;
+}
+.textArea_button button{
+  padding: 5px 20px;
+  border: 1px solid #ddd;
+}
+.mock_writing_container textarea{
+  width: 100%;
+  border: 1px solid #ddd;
+  padding: 5px;
+  font-size: 14px;
+}
+@keyframes waveAnimation1 {
+  0%, 100% { height: 8px; }
+  50% { height: 16px; }
+}
+
+@keyframes waveAnimation2 {
+  0%, 100% { height: 14px; }
+  50% { height: 6px; }
+}
+
+@keyframes waveAnimation3 {
+  0%, 100% { height: 10px; }
+  50% { height: 18px; }
+}
+
+  

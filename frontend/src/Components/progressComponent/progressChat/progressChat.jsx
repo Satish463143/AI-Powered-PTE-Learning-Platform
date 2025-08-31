@@ -1,6 +1,12 @@
-import React, { useState, useEffect, useRef,useCallback} from 'react'
+import React, { useState, useEffect, useRef, useCallback } from 'react'
 import './progressChat.css'
 import { Link } from 'react-router-dom'
+
+// Helper function to safely render HTML
+const createMarkup = (html) => {
+    return { __html: html };
+};
+
 const progressChat = ({handleMenuBar}) => {
     const [checked, setChecked] = useState(false)
     const [messages, setMessages] = useState([]);
@@ -105,10 +111,10 @@ const progressChat = ({handleMenuBar}) => {
                         />
                         <label htmlFor="check"></label>
                     </div>
-                    <div className="chat_messages">
+                    <div className="chat_messages" style={{height:'calc(100% - 80px)'}}>
                         {messages.map((message, index) => (
                             <div key={index} className={`message ${message.type}`}>
-                            {message.text}
+                                <div dangerouslySetInnerHTML={createMarkup(message.text)} />
                             </div>
                         ))}
                         <div ref={messagesEndRef} />

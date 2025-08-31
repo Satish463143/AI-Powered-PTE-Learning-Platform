@@ -5,6 +5,21 @@ import componentMap from '../../sections/allQuestionMap';
 import { useSelector, useDispatch } from 'react-redux';
 import { submit, nextQuestion } from '../../../reducer/chatReducer';
 import ReButton from '../../../Common/reButton/reButton';
+import ResultTable from '../../../Common/resultTable/resultTable';
+import { useGetChatMutation } from '../../../api/chat.api';
+import { useStartPracticeMutation } from '../../../api/practiceQuestion.api';
+
+const getCookie = (name) => {
+    const value = `; ${document.cookie}`;
+    const parts = value.split(`; ${name}=`);
+    if (parts.length === 2) return parts.pop().split(';').shift();
+    return null;
+};
+
+// Helper function to safely render HTML
+const createMarkup = (html) => {
+    return { __html: html };
+};
 
 const chatBox = ({showChatWithAi, messages, setMessages, isSoundOn}) => {
     const dispatch = useDispatch();
@@ -19,18 +34,46 @@ const chatBox = ({showChatWithAi, messages, setMessages, isSoundOn}) => {
     const hintUsed = useSelector(state => state.chat.hintUsed);
     const isRunning = useSelector(state => state.chat.isRunning);
     const submittedQuestions = useSelector(state => state.chat.submittedQuestions);
+    const [suggestions, setSuggestions] = useState([
+        // 'Can you suggest topics for us to discuss?',
+        // 'What are some ways I can use this assistant effectively?',
+        // 'What can you help me with today?'
+    ]);
+    const [getChat, {isLoading: isChatLoading}] = useGetChatMutation();
+    const suggestionTimeoutRef = useRef(null);
+    const [showSuggestions, setShowSuggestions] = useState(false);
+    const [hasInitialLoadOccurred, setHasInitialLoadOccurred] = useState(false);
+    const [getPracticeQuestion, {isLoading: isPracticeQuestionLoading}] = useStartPracticeMutation();
+    
 
+    //use effect for hint
     useEffect(() => {
         if(hintUsed && activeQuestionId && !submittedQuestions[activeQuestionId]){   
             // Only show hint if the question has not been submitted
             const activeQuestion = questionComponents.find(comp => comp.id === activeQuestionId);
-            let hintMessage = `Here is the hint for the question: [AI will provide a helpful hint here]`;
-            
-            if (activeQuestion) {
-                hintMessage = `Here is the hint for the ${activeQuestion.section} - ${activeQuestion.questionType} question: [AI will provide a helpful hint here]`;
-            }
-            
-            simulateAiResponse(hintMessage);
+
+            const getHint = async () => {
+                try {
+                    const submitData = {
+                        type: activeQuestion.type,
+                        payload: {
+                            actionType: "hint",
+                            section: activeQuestion.section.toLowerCase()
+                        }
+                    };
+                    const response = await getPracticeQuestion(submitData);
+                    if (response.data && response.data.result) {
+                        // Extract the hint text from the response
+                        const hintText = response.data.result.hint || response.data.result;
+                        simulateAiResponse(typeof hintText === 'string' ? hintText : 'Here is a hint to help you.');
+                    }
+                } catch(error) {
+                    console.log('Error getting hint:', error);
+                    simulateAiResponse("Sorry, I couldn't generate a hint at this moment. Please try again.");
+                }
+            };
+
+            getHint();
         }
     }, [hintUsed, activeQuestionId, questionComponents, submittedQuestions])
 
@@ -38,6 +81,12 @@ const chatBox = ({showChatWithAi, messages, setMessages, isSoundOn}) => {
     const QuestionRenderer = ({ type, data, isActive = true, questionId }) => {
         const Component = componentMap[type]
         const isActiveQuestion = activeQuestionId === questionId || isActive;
+        
+        // Find the result data for this question from messages
+        const resultMessage = messages.find(msg => 
+            msg.relatedQuestionId === questionId && msg.resultData
+        );
+        const resultData = resultMessage?.resultData;
         
         return (
             <>
@@ -47,6 +96,7 @@ const chatBox = ({showChatWithAi, messages, setMessages, isSoundOn}) => {
                     onNext={handleNext}
                     showTimer={isActiveQuestion} // Only show timer for active question
                     questionId={questionId}
+                    resultData={resultData}
                 /> : <div>Unknown question type</div>}
             </>
         )
@@ -121,62 +171,64 @@ const chatBox = ({showChatWithAi, messages, setMessages, isSoundOn}) => {
         }
       };
 
-    const handleSectionChange = (selectedOption) => {
+    const handleSectionChange = async(selectedOption) => {
     const newSection = selectedOption ? selectedOption.value : null;
     setSelectedSection(newSection);
     setSelectedContent(null);
-    // Don't clear question components when changing section
-    
-    // Send section selection to chat
-    if (newSection) {
-        const message = `Selected section: ${newSection}`;
-        setMessages(prev => [...prev, { type: 'user', text: message }]);
-        
-        // Simulate AI response
-        simulateAiResponse(`I'll help you with ${newSection} section. Please select a specific question type.`);
-    }
     };
     
     //handle the question change (Next Question)
-    const handleContentChange = (selectedOption) => {
+    const handleContentChange = async(selectedOption) => {
         const newContent = selectedOption ? selectedOption.value : null;
         setSelectedContent(newContent);
         
         // Send content selection to chat
         if (newContent && selectedSection) {
-            const message = `Selected question type: ${newContent}`;
+            const message = `Section Type: ${selectedSection}, Selected question type: ${newContent}`;
             setMessages(prev => [...prev, { type: 'user', text: message }]);
             
-            // Generate new question data based on selected type
-            const questionData = generateSampleQuestionData(selectedSection, newContent);
-            
-            // Map the selected content to the correct component key in componentMap
-            const componentKey = getComponentKey(selectedSection, newContent);
-            
-            // Create a message ID to link the AI response with question component
-            const messageId = Date.now();
-            
-            // Add new question component to array
-            const newQuestionComponent = {
-                id: messageId,
-                type: componentKey,
-                data: questionData,
-                section: selectedSection,
-                questionType: newContent,
-                isActive: true
-            };
-            
-            setQuestionComponents(prev => [...prev, newQuestionComponent]);
-            
-            // Set this question as the active one
-            setActiveQuestionId(messageId);
-            
-            // Simulate AI response with new question
-            simulateAiResponse(
-                `Here's a new practice question for ${selectedSection} - ${newContent}:`, 
-                messageId
-            );
-            
+            try {
+                // Map the selected content to the correct component key in componentMap first
+                const componentKey = getComponentKey(selectedSection, newContent);
+                
+                // Make API call to get the question
+                const submitData = {
+                    type: componentKey,
+                    payload: {
+                        actionType: "next",
+                        section: selectedSection.toLowerCase()
+                    }
+                };
+
+                const response = await getPracticeQuestion(submitData);
+                console.log('API Response Data Structure:', response);
+                
+                // Create a message ID to link the AI response with question component
+                const messageId = Date.now();
+                
+                // Add new question component to array with actual API response data
+                const newQuestionComponent = {
+                    id: messageId,
+                    type: componentKey,
+                    data: response.data,
+                    section: selectedSection,
+                    questionType: newContent,
+                    isActive: true
+                };
+                
+                setQuestionComponents(prev => [...prev, newQuestionComponent]);
+                
+                // Set this question as the active one
+                setActiveQuestionId(messageId);
+                
+                simulateAiResponse(
+                    `Here's a new practice question for ${selectedSection} - ${newContent}:`, 
+                    messageId
+                );
+            } catch (error) {
+                console.error('Error getting question:', error);
+                simulateAiResponse("Sorry, there was an error getting the question. Please try again.");
+            }
         }
     };
 
@@ -206,9 +258,9 @@ const chatBox = ({showChatWithAi, messages, setMessages, isSoundOn}) => {
             'Listening': {
                 'Summarize Spoken Text': 'summarizeSpokenText',
                 'Multiple Choice, Choose Multiple Answers': 'multipleChoiceMultiple_listening',
-                'Fill in the Blanks': 'fillInTheBlanks_listenng',
+                'Fill in the Blanks': 'fillInTheBlanks_listening',
                 'Highlight Incorrect Words': 'highlightIncorrectWords',
-                'Multiple Choice, Choose Single Answer': 'multipleChoiceSingle_listenong',
+                'Multiple Choice, Choose Single Answer': 'multipleChoiceSingle_listening', // Fixed typo from 'listenong' to 'listening'
                 'Select Missing Word': 'selectMissingWord',
                 'Write from Dictation': 'writeFromDictation'
             }
@@ -219,58 +271,17 @@ const chatBox = ({showChatWithAi, messages, setMessages, isSoundOn}) => {
             : questionType; // Fallback to the original type if mapping not found
     };
     
-    // Helper function to generate sample question data based on question type
-    const generateSampleQuestionData = (section, questionType) => {
-        // Generate a unique ID based on timestamp
-        const id = Date.now();
-        
-        // Sample questions for different types
-        const sampleQuestions = {
-            'Reading': {
-                'Reading & Writing：Fill in the blanks': `Sample reading and writing fill in the blanks question ${id}`,
-                'Multiple Choice (Multiple)': `Sample multiple choice multiple question ${id}`,
-                'Re-order Paragraphs': `Sample re-order paragraphs question ${id}`,
-                'Reading：Fill in the Blanks': `Sample reading fill in the blanks question ${id}`,
-                'Multiple Choice (Single)': `Sample multiple choice single question ${id}`
-            },
-            'Writing': {
-                'Summarize Written Text': `Sample summarize written text question ${id}`,
-                'Write Essay': `Sample essay question ${id}`
-            },
-            'Speaking': {
-                'Read Aloud': `Sample read aloud question ${id}`,
-                'Repeat Sentence': `Sample repeat sentence question ${id}`,
-                'Describe Image': `Sample describe image question ${id}`,
-                'Respond to a situation': `Sample respond to situation question ${id}`,
-                'Answer Short Question': `Sample short question ${id}`
-            },
-            'Listening': {
-                'Summarize Spoken Text': `Sample summarize spoken text question ${id}`,
-                'Multiple Choice, Choose Multiple Answers': `Sample multiple choice multiple listening question ${id}`,
-                'Fill in the Blanks': `Sample fill in the blanks listening question ${id}`,
-                'Highlight Incorrect Words': `Sample highlight incorrect words question ${id}`,
-                'Multiple Choice, Choose Single Answer': `Sample multiple choice single listening question ${id}`,
-                'Select Missing Word': `Sample select missing word question ${id}`,
-                'Write from Dictation': `Sample write from dictation question ${id}`
-            }
-        };
-
-        return {
-            id: id,
-            question: sampleQuestions[section]?.[questionType] || `This is a sample ${questionType} question from the ${section} section.`,
-            // Add other properties based on question type requirements
-        };
-    };
 
     // Helper function to simulate AI response
-    const simulateAiResponse = (responseText, messageId = null, relatedQuestionId = null, isSubmissionResponse = false) => {
+    const simulateAiResponse = (responseText, messageId = null, relatedQuestionId = null, isSubmissionResponse = false, resultData = null) => {
         setTimeout(() => {
             setMessages(prev => [...prev, { 
                 type: 'ai', 
                 text: responseText,
                 messageId: messageId, // Add messageId to link with question component
                 relatedQuestionId: relatedQuestionId, // Add related question ID for buttons
-                isSubmissionResponse: isSubmissionResponse // Flag to indicate if this is a response to a submission
+                isSubmissionResponse: isSubmissionResponse, // Flag to indicate if this is a response to a submission
+                resultData: resultData // Add result data for displaying in ResultTable
             }]);
             if (isSoundOn && 'speechSynthesis' in window) {
                 const utterance = new SpeechSynthesisUtterance(responseText);
@@ -309,17 +320,30 @@ const chatBox = ({showChatWithAi, messages, setMessages, isSoundOn}) => {
         }
     }, []);
 
-    //scroll to bottom
-    const scrollToBottom = useCallback(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-    }, []);
-    
-    // Execute scrollToBottom when messages change
+    // Auto-scroll to bottom when new messages are added
     useEffect(() => {
         if (messages.length > 0) {
-            scrollToBottom();
+            const chatMessages = document.querySelector('.chat_messages');
+            if (chatMessages) {
+                // Always scroll to bottom when new messages are added
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            }
         }
-    }, [messages, scrollToBottom]);
+    }, [messages]);
+
+    // Handle initial load suggestions
+    useEffect(() => {
+        // Only show suggestions if initial load hasn't occurred yet
+        if (!hasInitialLoadOccurred && !isRunning) {
+            // Set a timeout for initial suggestions
+            const initialTimeout = setTimeout(() => {
+                setShowSuggestions(true);
+                setHasInitialLoadOccurred(true);
+            }, 5000);
+
+            return () => clearTimeout(initialTimeout);
+        }
+    }, [hasInitialLoadOccurred, isRunning]);
 
     // Handle mic click
     const handleMicClick = () => {
@@ -333,98 +357,272 @@ const chatBox = ({showChatWithAi, messages, setMessages, isSoundOn}) => {
         }
     };
 
-    // Handle input submit
-    const handleInputSubmit = (e) => {
+    // Add new function to handle practice question from chat
+    const handlePracticeFromChat = async (section, questionType) => {
+        // Map the section and question type to match the format expected by the practice API
+        const componentKey = getComponentKey(section, questionType);
+        const messageId = Date.now();
+
+        try {
+            const submitData = {
+                type: componentKey,
+                payload: {
+                    actionType: "next",
+                    section: section.toLowerCase(),
+                }
+            };
+
+            const response = await getPracticeQuestion(submitData);
+            
+            if (response.data && response.data.result) {
+                // Create new question component
+                const newQuestionComponent = {
+                    id: messageId,
+                    type: componentKey,
+                    data: response.data,
+                    section: section,
+                    questionType: questionType,
+                    isActive: true
+                };
+                
+                // Mark all existing questions as inactive
+                const updatedQuestionComponents = questionComponents.map(comp => ({
+                    ...comp,
+                    isActive: false
+                }));
+                
+                // Add the new question component and set it as active
+                setQuestionComponents([...updatedQuestionComponents, newQuestionComponent]);
+                setActiveQuestionId(messageId);
+                
+                // Update the select dropdowns to match the current question
+                setSelectedSection(section);
+                setSelectedContent(questionType);
+                
+                // Send message for the new question
+                simulateAiResponse(
+                    `Here's your ${section} - ${questionType} question:`, 
+                    messageId
+                );
+            }
+        } catch(error) {
+            console.error('Error getting question from chat:', error);
+            simulateAiResponse("Sorry, there was an error generating the question. Please try again.");
+        }
+    };
+
+    // Modify handleInputSubmit to handle practice requests
+    const handleInputSubmit = async(e) => {
         e.preventDefault();
         if (inputValue.trim()) {
             setMessages(prev => [...prev, { type: 'user', text: inputValue }]);
-            setInputValue('');
-            
-            // Generate AI response based on context if available
-            let aiResponse = 'This is a sample AI response.';
-            simulateAiResponse(aiResponse);
+            setInputValue('');            
+            try {
+                const chatData = {
+                    message: inputValue,
+                    type: "question"
+                };
+                const response = await getChat(chatData);
+                
+                // Check if the response indicates a practice request
+                if (response?.data?.result?.isPracticeRequest) {
+                    const { section, questionType } = response.data.result;
+                    await handlePracticeFromChat(section, questionType);
+                } else {
+                    simulateAiResponse(response?.data?.result);
+                }
+            } catch(error) {
+                console.log(error);
+                simulateAiResponse("Sorry, I encountered an error. Please try again.");
+            }
         }
     };
 
     // Handle submit action
-    const handleSubmit = () => {
+    const handleSubmit = async(answer) => {
+        console.log('User answer:', answer);
         if (isRunning) {
-            // Get the active question component
             const activeQuestion = questionComponents.find(comp => comp.id === activeQuestionId);
             
             if (!activeQuestion) return;
             
-            // Dispatch submit with the active question ID
             dispatch(submit(activeQuestionId));
             
-            // Only generate feedback if question wasn't already submitted
             if (!submittedQuestions[activeQuestionId]) {
-                // Generate a more detailed feedback message based on question type
-                let feedbackMessage = `Your answer for ${activeQuestion.section} - ${activeQuestion.questionType} has been submitted!`;
-                // Add submission message to chat with flag to indicate it's a submission response
-                simulateAiResponse(feedbackMessage, null, activeQuestionId, true);
-            }
-                
-            // Update the question component to show it as submitted
-            setQuestionComponents(prev => prev.map(comp => {
-                if (comp.id === activeQuestionId) {
-                    return { ...comp, submitted: true };
+                try {
+                    const userId = getCookie('userId');
+                    
+                    const submitData = {
+                        type: activeQuestion.type,
+                        payload: {
+                            actionType: "submit",
+                            section: activeQuestion.section.toLowerCase(),
+                            userId: userId, // This will be handled by authOrAnonymous middleware if null
+                            userAnswer: answer,
+                            attemptDuration: 45
+                        }
+                    };
+                    let response = await getPracticeQuestion(submitData);
+                    console.log('response',response);
+                    
+                    if (response.data && response.data.result) {
+                        const overallScore = response.data.result.evaluationDetails.overallScore;
+                        let feedbackMessage = `Your answer for ${activeQuestion.section} - ${activeQuestion.questionType} has been submitted! Here is your score:${overallScore}`;
+                        
+                        // Construct result data from the actual response
+                        const resultData = {
+                            questionType: response.data.result.evaluationDetails.questionType,
+                            headers: response.data.result.evaluationDetails.headers,
+                            rows: response.data.result.evaluationDetails.rows,
+                            overallScore: response.data.result.evaluationDetails.overallScore,
+                            correctAnswers: response.data.result.correctAnswers,
+                            userAnswers: response.data.result.userAnswers
+                        };
+                        
+                        simulateAiResponse(feedbackMessage, null, activeQuestionId, true, resultData);
+                        
+                        // Update the question component to show it as submitted
+                        setQuestionComponents(prev => prev.map(comp => {
+                            if (comp.id === activeQuestionId) {
+                                return { ...comp, submitted: true };
+                            }
+                            return comp;
+                        }));
+                        
+
+                    }
+                } catch(error) {
+                    console.log('Error submitting answer:', error);
+                    simulateAiResponse("Sorry, there was an error submitting your answer. Please try again.");
                 }
-                return comp;
-            }));
+            }
         }
     };
 
-    // Handle next question action
-    const handleNext = () => {
+    // Handle next question action for practice question
+    const handleNext = async() => {
         // Stop the current timer and reset state
         dispatch(nextQuestion());
         
-        if (selectedSection && selectedContent) {
-            // Generate new question data
-            const questionData = generateSampleQuestionData(selectedSection, selectedContent);
-            const componentKey = getComponentKey(selectedSection, selectedContent);
+        // Get section and content from the active question if state is lost
+        let sectionToUse = selectedSection;
+        let contentToUse = selectedContent;
+        
+        if (!sectionToUse || !contentToUse) {
+            const activeQuestion = questionComponents.find(comp => comp.id === activeQuestionId);
+            if (activeQuestion) {
+                sectionToUse = activeQuestion.section;
+                contentToUse = activeQuestion.questionType;
+            }
+        }
+        
+        if (sectionToUse && contentToUse) {
             const messageId = Date.now();
-            
-            // Create new component for the question
-            const newQuestionComponent = {
-                id: messageId,
-                type: componentKey,
-                data: questionData,
-                section: selectedSection,
-                questionType: selectedContent,
-                isActive: true
-            };
-            
-            // First mark all existing questions as inactive
-            const updatedQuestionComponents = questionComponents.map(comp => ({
-                ...comp,
-                isActive: false
-            }));
-            
-            // Add the new question component and set it as active
-            setQuestionComponents([...updatedQuestionComponents, newQuestionComponent]);
-            setActiveQuestionId(messageId);
-            
-            // Send the message for the new question
-            simulateAiResponse(
-                `Here's a new practice question for ${selectedSection} - ${selectedContent}:`, 
-                messageId
-            );
-            
-            // The timer will be set by the respective question component when it mounts
-            // This is more reliable and prevents timer resets when using hints
+
+            // Check if this is a listening question - if so, use static data instead of API
+            if (sectionToUse.toLowerCase() === 'listening') {
+                // For listening questions, create a new component with static data
+                const componentKey = getComponentKey(sectionToUse, contentToUse);
+                
+                const newQuestionComponent = {
+                    id: messageId,
+                    type: componentKey,
+                    data: {}, // Empty data - component will use static data from reducer
+                    section: sectionToUse,
+                    questionType: contentToUse,
+                    isActive: true
+                };
+                
+                // First mark all existing questions as inactive
+                const updatedQuestionComponents = questionComponents.map(comp => ({
+                    ...comp,
+                    isActive: false
+                }));
+                
+                // Add the new question component and set it as active
+                setQuestionComponents([...updatedQuestionComponents, newQuestionComponent]);
+                setActiveQuestionId(messageId);
+                
+                // Send message for the new question
+                simulateAiResponse(
+                    `Here's your next ${sectionToUse} - ${contentToUse} question:`, 
+                    messageId
+                );
+            } else {
+                // For non-listening questions, use the API
+                try {
+                    // Get the component key first
+                    const componentKey = getComponentKey(sectionToUse, contentToUse);
+                    
+                    // Make API call to get next question
+                    const submitData = {
+                        type: componentKey, // This is the question type for the API endpoint
+                        payload: {
+                            actionType: "next",
+                            section: sectionToUse.toLowerCase(),
+                        }
+                    };
+
+                    const response = await getPracticeQuestion(submitData);
+                    if (response.data && response.data.result) {
+                        // Create new component for the question using the API response data
+                        const newQuestionComponent = {
+                            id: messageId,
+                            type: componentKey,
+                            data: response.data, // Fix: Use response.data instead of response
+                            section: sectionToUse,
+                            questionType: contentToUse,
+                            isActive: true
+                        };
+                        
+                        // First mark all existing questions as inactive
+                        const updatedQuestionComponents = questionComponents.map(comp => ({
+                            ...comp,
+                            isActive: false
+                        }));
+                        
+                        // Add the new question component and set it as active
+                        setQuestionComponents([...updatedQuestionComponents, newQuestionComponent]);
+                        setActiveQuestionId(messageId);
+                        
+                        // Send message for the new question
+                        simulateAiResponse(
+                            `Here's your next ${sectionToUse} - ${contentToUse} question:`, 
+                            messageId
+                        );
+
+                    }
+                } catch(error) {
+                    console.error('Error getting next question:', error);
+                    simulateAiResponse("Sorry, there was an error getting the next question. Please try again.");
+                }
+            }
         }
     };
 
     // Add function to handle clarify answer request
-    const handleClearifyAnswer = (questionId) => {
+    const handleClearifyAnswer = async(questionId) => {
         if (!questionId) return;
-        // Get the related question component
         const question = questionComponents.find(comp => comp.id === questionId);
-        let clarificationMessage = `Here's a clearer explanation for the ${question.section} - ${question.questionType} question:`;
-            
-        simulateAiResponse(clarificationMessage);        
+        try {
+            const submitData = {
+                type: question.type,
+                payload: {
+                    actionType: "clarify",
+                    lastFeedback: ""
+                }
+            };
+            const response = await getPracticeQuestion(submitData);
+            if (response.data && response.data.result) {
+                const clarification = typeof response.data.result === 'string'
+                    ? response.data.result
+                    : response.data.result.clarification || 'Here is a clarification of your feedback.';
+                simulateAiResponse(clarification);
+            }
+        } catch(error) {
+            console.log('Error getting clarification:', error);
+            simulateAiResponse("Sorry, I couldn't clarify the feedback at this moment. Please try again.");
+        }
     };
 
     // Combine messages and components for display
@@ -433,23 +631,55 @@ const chatBox = ({showChatWithAi, messages, setMessages, isSoundOn}) => {
         
         // Process all messages
         messages.forEach((message, index) => {
-            // Add the message
-            contentItems.push(
-                <div key={`msg-${index}`} className={`message ${message.type}`}>
-                    {message.text}
-                </div>
-            );
+            // Check if this is a reading or writing section question
+            const isReadingOrWritingSection = message.relatedQuestionId && 
+                (questionComponents.find(comp => comp.id === message.relatedQuestionId)?.type === 'reading_fillInTheBlanks' ||
+                 questionComponents.find(comp => comp.id === message.relatedQuestionId)?.type === 'fillInTheBlanks_reading' ||
+                 questionComponents.find(comp => comp.id === message.relatedQuestionId)?.type === 'multipleChoiceSingle_reading' ||
+                 questionComponents.find(comp => comp.id === message.relatedQuestionId)?.type === 'multipleChoiceMultiple_reading' ||
+                 questionComponents.find(comp => comp.id === message.relatedQuestionId)?.type === 'reorderParagraph' ||
+                 questionComponents.find(comp => comp.id === message.relatedQuestionId)?.type === 'summarizeWrittenText' ||
+                 questionComponents.find(comp => comp.id === message.relatedQuestionId)?.type === 'writeEssay' ||
+                 questionComponents.find(comp => comp.id === message.relatedQuestionId)?.type === 'fillInTheBlanksReadingWriting');
             
-            // If this is an AI response to a submission, add the ReButton after it
-            if (message.type === 'ai' && message.isSubmissionResponse) {
+            // Check if this is a listening section question
+            const isListeningSection = message.relatedQuestionId && 
+                (questionComponents.find(comp => comp.id === message.relatedQuestionId)?.type === 'summarizeSpokenText' ||
+                 questionComponents.find(comp => comp.id === message.relatedQuestionId)?.type === 'multipleChoiceMultiple_listening' ||
+                 questionComponents.find(comp => comp.id === message.relatedQuestionId)?.type === 'fillInTheBlanks_listening' ||
+                 questionComponents.find(comp => comp.id === message.relatedQuestionId)?.type === 'highlightIncorrectWords' ||
+                 questionComponents.find(comp => comp.id === message.relatedQuestionId)?.type === 'multipleChoiceSingle_listening' ||
+                 questionComponents.find(comp => comp.id === message.relatedQuestionId)?.type === 'selectMissingWord' ||
+                 questionComponents.find(comp => comp.id === message.relatedQuestionId)?.type === 'writeFromDictation');
+            
+            // Check if this is a reading, writing, or listening section submission response
+            const isReadingOrWritingOrListeningSubmission = message.type === 'ai' && message.isSubmissionResponse && message.relatedQuestionId &&
+                (questionComponents.find(comp => comp.id === message.relatedQuestionId)?.section?.toLowerCase() === 'reading' ||
+                 questionComponents.find(comp => comp.id === message.relatedQuestionId)?.section?.toLowerCase() === 'writing' ||
+                 questionComponents.find(comp => comp.id === message.relatedQuestionId)?.section?.toLowerCase() === 'listening');
+            
+            // Add the message (but skip submission responses for reading/writing/listening)
+            if (!isReadingOrWritingOrListeningSubmission) {
                 contentItems.push(
-                    <div key={`rebutton-${index}`} className="message-buttons">
-                        <ReButton 
-                            onNext={handleNext}
-                            clearifyAnswer={() => handleClearifyAnswer(message.relatedQuestionId)}
-                        />
+                    <div key={`msg-${index}`} className={`message ${message.type}`}>
+                        <div dangerouslySetInnerHTML={createMarkup(message.text)} />
+                        {message.resultData && message.resultData.headers && message.resultData.rows && !isReadingOrWritingSection && !isListeningSection && (
+                            <ResultTable data={message.resultData} />
+                        )}
                     </div>
                 );
+                
+                // If this is an AI response to a submission, add the ReButton after it
+                if (message.type === 'ai' && message.isSubmissionResponse) {
+                    contentItems.push(
+                        <div key={`rebutton-${index}`} className="message-buttons">
+                            <ReButton 
+                                onNext={handleNext}
+                                clearifyAnswer={() => handleClearifyAnswer(message.relatedQuestionId)}
+                            />
+                        </div>
+                    );
+                }
             }
             
             // If this is an AI message with messageId, find and add the corresponding question component
@@ -486,45 +716,98 @@ const chatBox = ({showChatWithAi, messages, setMessages, isSoundOn}) => {
         return contentItems;
     };
 
+    // Handle suggestion click
+    const handleSuggestionClick = (suggestion) => {
+        setInputValue(suggestion);
+        setShowSuggestions(false);
+        // Clear any existing timeout
+        if (suggestionTimeoutRef.current) {
+            clearTimeout(suggestionTimeoutRef.current);
+        }
+    };
+
+    // Handle input change with suggestions
+    const handleInputChange = (e) => {
+        const value = e.target.value;
+        setInputValue(value);
+        
+        // Clear any existing timeout
+        if (suggestionTimeoutRef.current) {
+            clearTimeout(suggestionTimeoutRef.current);
+        }
+        
+        // Hide suggestions immediately when typing
+        setShowSuggestions(false);
+        
+        // Only set new timeout if input is empty and initial load has occurred
+        if (value.length === 0 && hasInitialLoadOccurred) {
+            suggestionTimeoutRef.current = setTimeout(() => {
+                setShowSuggestions(true);
+            }, 5000);
+        }
+    };
+
     return (
         <div>
-            <div className={`chat_div ${!showChatWithAi ? 'visible' : ''} ${isRunning ? 'timer-running' : ''}`}>
+            <div className={`chat_div ${!showChatWithAi ? 'visible' : ''}`}>
                 
                 <div className="chat_messages">
                     {renderChatContent()}
                     <div ref={messagesEndRef} />
+                    {isChatLoading || isPracticeQuestionLoading && <p className='loading_text'>Generating</p>}
+                    {/* {isPracticeQuestionLoading && <p className='loading_text'>AI is generating the question</p>} */}
+                    
+                    
                 </div>
 
-                <div className="chat_input chat_div_input">
+                <div className=" chat_div_input">
+                    {showSuggestions && !isRunning && inputValue.length === 0 && (
+                        <div className="suggestions">
+                            {suggestions.map((suggestion, index) => (
+                                <div
+                                    key={index}
+                                    className="suggestion-item"
+                                    onClick={() => handleSuggestionClick(suggestion)}
+                                >
+                                    {suggestion}
+                                </div>
+                            ))}
+                        </div>
+                    )}
                     <form onSubmit={handleInputSubmit} className="input_container">
-                        <input 
-                            type="text" 
-                            placeholder={isRunning ? 'पहिला प्रश्नन मिलाउनुहोस् अनि मात्र chat गर्नुहोस्' : ` आफ्नो प्रश्न लेख्नुहोस्`} 
-                            style={{height:'40px'}}
-                            value={inputValue}
-                            onChange={(e) => setInputValue(e.target.value)}
-                            disabled={isRunning}
-                        />
-                        <span 
-                            className={`chat_mic ${isRunning ? 'disabled-mic' : ''}`}
-                            onClick={isRunning ? null : handleMicClick} 
-                            style={{right:'35px',  transform:'translateY(-30%)',  }}
-                        >
-                            <svg 
+                        <div className="chat_input_wrapper">
+                            <input 
+                                type="text" 
+                                placeholder={isRunning ? 'पहिला प्रश्नन मिलाउनुहोस् अनि मात्र chat गर्नुहोस्' : 'आफ्नो प्रश्न लेख्नुहोस्'} 
+                                style={{ height: '40px' }}
+                                value={inputValue}
+                                onChange={handleInputChange}
+                                disabled={isRunning}
+                            />
+
+                            <span 
+                                className={`chat_mic ${isRunning ? 'disabled-mic' : ''}`}
+                                onClick={isRunning ? null : handleMicClick}
+                            >
+                                <svg 
                                 className="bi bi-mic" 
                                 fill={isListening ? "red" : (isRunning ? "#ccc" : "currentColor")} 
-                                height="36" 
+                                height="24" 
                                 viewBox="0 0 16 26" 
-                                width="36" 
+                                width="24" 
                                 xmlns="http://www.w3.org/2000/svg"
-                            >
+                                >
                                 <path d="M3.5 6.5A.5.5 0 0 1 4 7v1a4 4 0 0 0 8 0V7a.5.5 0 0 1 1 0v1a5 5 0 0 1-4.5 4.975V15h3a.5.5 0 0 1 0 1h-7a.5.5 0 0 1 0-1h3v-2.025A5 5 0 0 1 3 8V7a.5.5 0 0 1 .5-.5z"/>
                                 <path d="M10 8a2 2 0 1 1-4 0V3a2 2 0 1 1 4 0v5zM8 0a3 3 0 0 0-3 3v5a3 3 0 0 0 6 0V3a3 3 0 0 0-3-3z"/>
-                            </svg>
-                        </span>
-                        <button type="submit" className="send-button" disabled={isRunning}>
-                            <svg style={{enableBackground:'new 0 0 24 24', opacity: isRunning ? 0.5 : 1}} height='30px' width='30px' version="1.1" viewBox="0 0 24 24" xmlSpace="preserve" xmlns="http://www.w3.org/2000/svg" xmlnsXlink="http://www.w3.org/1999/xlink"><g id="info"/><g id="icons"><path d="M21.5,11.1l-17.9-9C2.7,1.7,1.7,2.5,2.1,3.4l2.5,6.7L16,12L4.6,13.9l-2.5,6.7c-0.3,0.9,0.6,1.7,1.5,1.2l17.9-9   C22.2,12.5,22.2,11.5,21.5,11.1z" id="send"/></g></svg>
-                        </button>
+                                </svg>
+                            </span>
+
+                            <button type="submit" className="send-button" disabled={isRunning}>
+                                <svg className="send-icon" viewBox="0 0 24 24">
+                                <path d="M21.5,11.1l-17.9-9C2.7,1.7,1.7,2.5,2.1,3.4l2.5,6.7L16,12L4.6,13.9l-2.5,6.7c-0.3,0.9,0.6,1.7,1.5,1.2l17.9-9C22.2,12.5,22.2,11.5,21.5,11.1z"/>
+                                </svg>
+                            </button>
+                        </div>
                     </form>
                 </div>
 
