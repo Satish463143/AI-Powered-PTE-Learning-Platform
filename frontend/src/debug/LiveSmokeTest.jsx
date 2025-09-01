@@ -1,347 +1,234 @@
-// src/debug/LiveSmokeTest.jsx
+// src/debug/LiveVoiceTest.jsx
 import React, { useEffect, useRef, useState } from "react";
 import { GoogleGenAI, Modality } from "@google/genai";
 
-/**
- * ───────────────────────────── Config ─────────────────────────────
- */
+/* ---------- config ---------- */
 const START_CALL_URL = "http://localhost:3005/call/start_call";
 const LIVE_MODEL = "gemini-live-2.5-flash-preview";
-
-// If your backend sets a session cookie, set this to true.
-// If you use a Bearer token from localStorage/sessionStorage, set to false.
 const USE_COOKIES = false;
 
-/** Build Authorization header from localStorage/sessionStorage when not using cookies */
 function authHeaders() {
   if (USE_COOKIES) return {};
   const jwt =
     localStorage.getItem("_at") ||
-    localStorage.getItem("_rt") 
+    localStorage.getItem("_rt") ||
+    localStorage.getItem("accessToken") ||
+    localStorage.getItem("token") ||
+    sessionStorage.getItem("accessToken");
   return jwt ? { Authorization: `Bearer ${jwt}` } : {};
 }
 
-/** Ephemeral token caching */
 const LS_TOKEN_KEY = "live_ephemeral_token";
-const TTL_MS = 55_000; // keep token at most ~55s (they expire quickly)
+const TTL_MS = 55_000;
+const safeStringify = (o) => { try { return JSON.stringify(o); } catch { return String(o); } };
 
-/**
- * ───────────────────────────── Token Cache ─────────────────────────────
- */
-function loadCachedToken() {
-  try {
-    const raw = localStorage.getItem(LS_TOKEN_KEY);
-    if (!raw) return null;
-    const obj = JSON.parse(raw);
-    if (!obj?.token || !obj?.savedAt) return null;
-    if (Date.now() - obj.savedAt > TTL_MS) return null;
-    return obj; // { token, savedAt }
-  } catch {
-    return null;
+/* ---------- tiny extractors ---------- */
+function harvestTextsDeep(node, out = []) {
+  if (!node || typeof node !== "object") return out;
+  if (Array.isArray(node)) { node.forEach(n => harvestTextsDeep(n, out)); return out; }
+  for (const [k, v] of Object.entries(node)) {
+    if (k === "text" && typeof v === "string") out.push(v);
+    else harvestTextsDeep(v, out);
   }
+  return out;
 }
-function saveCachedToken(token) {
-  try {
-    localStorage.setItem(
-      LS_TOKEN_KEY,
-      JSON.stringify({ token, savedAt: Date.now() })
-    );
-  } catch {}
-}
-function clearCachedToken() {
-  try {
-    localStorage.removeItem(LS_TOKEN_KEY);
-  } catch {}
+function harvestInlineAudioDeep(node, out = []) {
+  if (!node || typeof node !== "object") return out;
+  if (Array.isArray(node)) { node.forEach(n => harvestInlineAudioDeep(n, out)); return out; }
+  if (node.inlineData?.data) out.push({ data: node.inlineData.data, mimeType: node.inlineData.mimeType || "" });
+  for (const v of Object.values(node)) harvestInlineAudioDeep(v, out);
+  return out;
 }
 
-/**
- * ───────────────────────────── Component ─────────────────────────────
- */
-export default function LiveSmokeTest() {
+/* ---------- component ---------- */
+export default function LiveVoiceTest() {
   const [status, setStatus] = useState("idle");
-  const [token, setToken] = useState(null);
-  const [tokenSource, setTokenSource] = useState("none"); // 'cache' | 'network' | 'none'
-  const [cachedAgeMs, setCachedAgeMs] = useState(null);
-
   const [connected, setConnected] = useState(false);
+  const [audioEnabled, setAudioEnabled] = useState(false);
   const [sending, setSending] = useState(false);
   const [micOn, setMicOn] = useState(false);
   const [lastEvent, setLastEvent] = useState(null);
   const [log, setLog] = useState([]);
   const [textReplies, setTextReplies] = useState([]);
+  const [input, setInput] = useState("Hello! Please reply briefly.");
 
-  // audio gate (must be triggered from a user gesture)
-  const [audioEnabled, setAudioEnabled] = useState(false);
+  // playback
+  const audioCtxRef = useRef(null);
+  const playHeadRef = useRef(0);
+  const audioQueueRef = useRef([]);
 
-  // Refs
+  // live + mic
   const liveRef = useRef(null);
   const micRef = useRef(null);
-  const audioCtxRef = useRef(null);
-  const audioQueueRef = useRef([]); // queue functions until audio is enabled
+  const analyserRef = useRef(null);
+  const vuRef = useRef(0); // 0..1
 
-  function logLine(...args) {
-    // eslint-disable-next-line no-console
-    console.log(...args);
-    setLog((prev) => [...prev, args.map(String).join(" ")].slice(-400));
-  }
+  function logLine(...a) { console.log(...a); setLog(p => [...p, a.map(String).join(" ")].slice(-500)); }
 
-  /**
-   * ───────────────────────────── Lifecycle ─────────────────────────────
-   */
   useEffect(() => {
     (async () => {
-      // 1) Try cached token first
       const cached = loadCachedToken();
       if (cached?.token) {
         setStatus("using-cached-token");
-        setToken(cached.token);
-        setTokenSource("cache");
-        setCachedAgeMs(Date.now() - cached.savedAt);
-        logLine("[SMOKE] using cached token (age:", Date.now() - cached.savedAt, "ms)");
-        await connectLive(cached.token, /*fromCache*/ true);
+        await connectLive(cached.token, true);
         return;
       }
-      // 2) Else fetch a new token
       await fetchAndConnectNewToken();
     })();
-
-    return () => {
-      stopMic();
-      try { liveRef.current?.close?.(); } catch {}
-      liveRef.current = null;
-      if (audioCtxRef.current) {
-        try { audioCtxRef.current.close(); } catch {}
-        audioCtxRef.current = null;
-      }
-    };
+    return () => { cleanup(); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  /**
-   * ───────────────────────────── Token fetch ─────────────────────────────
-   */
+  function cleanup() {
+    stopMic();
+    try { liveRef.current?.close?.(); } catch {}
+    liveRef.current = null;
+    if (audioCtxRef.current) { try { audioCtxRef.current.close(); } catch {} audioCtxRef.current = null; }
+  }
+
+  /* ---------- token cache ---------- */
+  function loadCachedToken() {
+    try {
+      const raw = localStorage.getItem(LS_TOKEN_KEY);
+      if (!raw) return null;
+      const obj = JSON.parse(raw);
+      if (!obj?.token || !obj?.savedAt) return null;
+      if (Date.now() - obj.savedAt > TTL_MS) return null;
+      return obj;
+    } catch { return null; }
+  }
+  function saveCachedToken(token) {
+    try { localStorage.setItem(LS_TOKEN_KEY, JSON.stringify({ token, savedAt: Date.now() })); } catch {}
+  }
+  function clearCachedToken() { try { localStorage.removeItem(LS_TOKEN_KEY); } catch {} }
+
   async function fetchAndConnectNewToken() {
     setStatus("requesting-token");
     logLine("[SMOKE] requesting token from", START_CALL_URL);
-    try {
-      const res = await fetch(START_CALL_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", ...authHeaders() },
-        body: JSON.stringify({ source: "live-smoke-test" }),
-        credentials: USE_COOKIES ? "include" : "omit",
-      });
-
-      if (!res.ok) {
-        const text = await res.text();
-        logLine("[SMOKE] token http error", res.status, text);
-        setStatus("token-error");
-        return;
-      }
-
-      const json = await res.json();
-      logLine("[SMOKE] token response", json);
-
-      const t = json?.token;
-      if (!t || !String(t).startsWith("auth_tokens/")) {
-        logLine("[SMOKE] ❌ expected auth_tokens/... but got:", t);
-        setStatus("token-missing");
-        return;
-      }
-
-      saveCachedToken(t);
-      setToken(t);
-      setTokenSource("network");
-      setCachedAgeMs(0);
-      setStatus("token-acquired");
-      await connectLive(t, /*fromCache*/ false);
-    } catch (err) {
-      logLine("[SMOKE] token fetch failed:", err?.message || err);
-      setStatus("token-error");
-    }
+    const res = await fetch(START_CALL_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...authHeaders() },
+      body: JSON.stringify({ source: "live-voice-test" }),
+      credentials: USE_COOKIES ? "include" : "omit",
+    });
+    if (!res.ok) { logLine("[SMOKE] token http error", res.status, await res.text()); setStatus("token-error"); return; }
+    const json = await res.json();
+    logLine("[SMOKE] token response", json);
+    const t = json?.token;
+    if (!t || !String(t).startsWith("auth_tokens/")) { logLine("[SMOKE] bad token", t); setStatus("token-missing"); return; }
+    saveCachedToken(t);
+    await connectLive(t, false);
   }
 
-  /**
-   * ───────────────────────────── Live connect ─────────────────────────────
-   */
   async function connectLive(ephemeralToken, fromCache) {
     setStatus("connecting");
     try {
       const ai = new GoogleGenAI({ apiKey: ephemeralToken, apiVersion: "v1alpha" });
-
       const live = await ai.live.connect({
         model: LIVE_MODEL,
         config: {
           responseModalities: [Modality.TEXT, Modality.AUDIO],
-          // 👇 Let the server decide when you've finished speaking:
-          turnDetection: { type: "SERVER_VAD" },
-          // keep it snappy for tests
-          systemInstruction:
-            "You are a helpful voice tutor. Keep replies to one short sentence.",
+          turnDetection: { type: "SERVER_VAD" },          // some builds ignore this with sendRealtimeInput()
+          systemInstruction: "You are a helpful speaking tutor; keep answers short.",
         },
         callbacks: {
-          onopen: () => {
-            logLine("[SMOKE] live: open");
-            setConnected(true);
-            setStatus("connected");
-          },
+          onopen: () => { logLine("[SMOKE] live: open"); setConnected(true); setStatus("connected"); },
           onerror: (e) => {
             logLine("[SMOKE] live: error", e?.message || e);
             setStatus("error");
-            if (fromCache) {
-              logLine("[SMOKE] cached token might be expired/used — clearing cache and retrying fresh token…");
-              clearCachedToken();
-              setToken(null);
-              setTokenSource("none");
-              fetchAndConnectNewToken();
-            }
+            if (fromCache) { clearCachedToken(); fetchAndConnectNewToken(); }
           },
-          onclose: () => {
-            logLine("[SMOKE] live: close");
-            setConnected(false);
-            setStatus("closed");
-          },
-          onmessage: (evt) => {
-            handleLiveEvent(evt);
-          },
+          onclose: () => { logLine("[SMOKE] live: close"); setConnected(false); setStatus("closed"); },
+          onmessage: onLiveEvent,
         },
       });
-
-      // Some builds also expose an emitter API — wire it too if present:
       if (typeof live.on === "function") {
-        live.on("event", handleLiveEvent);
-        live.on("error", (e) => {
-          logLine("[SMOKE] live(emitter): error", e?.message || e);
-        });
-        live.on("open", () => {
-          logLine("[SMOKE] live(emitter): open");
-        });
+        live.on("event", onLiveEvent);
+        live.on("error", (e) => logLine("[SMOKE] live(emitter): error", e?.message || e));
       }
-
       liveRef.current = live;
       logLine("[SMOKE] live methods", Object.keys(live).sort());
-    } catch (err) {
-      logLine("[SMOKE] connect failed:", err?.message || err);
+    } catch (e) {
+      logLine("[SMOKE] connect failed:", e?.message || e);
       setStatus("connect-error");
-      if (fromCache) {
-        logLine("[SMOKE] clearing cached token and retrying fresh token…");
-        clearCachedToken();
-        setToken(null);
-        setTokenSource("none");
-        fetchAndConnectNewToken();
-      }
+      if (fromCache) { clearCachedToken(); fetchAndConnectNewToken(); }
     }
   }
 
-  /**
-   * ───────────────────────────── Event handling ─────────────────────────────
-   */
-  function handleLiveEvent(evt) {
-    setLastEvent(summarizeEvent(evt));
+  /* ---------- events ---------- */
+  function onLiveEvent(evt) {
+    setLastEvent(summarize(evt));
 
-    // 1) Binary/PCM audio
     if (evt?.type === "output_audio" && evt?.audio instanceof Float32Array) {
-      const sr = evt?.sampleRate || 24_000;
-      queueOrPlayPCM(evt.audio, sr);
+      queuePCM(evt.audio, evt.sampleRate || 24000);
       return;
     }
 
-    // 2) Server content: text + (maybe) inline audio
-    if (evt?.serverContent?.modelTurn?.parts) {
-      for (const part of evt.serverContent.modelTurn.parts) {
-        if (part.text) {
-          setTextReplies((prev) => [...prev, part.text]);
-        }
-        if (part.inlineData?.mimeType?.startsWith("audio/") && part.inlineData?.data) {
-          // inline base64 audio (mp3/wav/opus). We'll try to decode & play.
-          queueOrDecodeAndPlayBase64(part.inlineData.data);
-        }
-      }
+    if (evt?.serverContent) {
+      logLine("[SMOKE] serverContent (FULL):", safeStringify(evt.serverContent));
+      const texts = harvestTextsDeep(evt.serverContent);
+      if (texts.length) setTextReplies(p => [...p, ...texts]);
+      const audios = harvestInlineAudioDeep(evt.serverContent);
+      audios.forEach(queueInlineAudio);
       return;
     }
 
-    // 3) Everything else logged for debugging
-    logLine("[SMOKE] live: message", summarizeEvent(evt));
-    if (!evt?.type) {
-      logLine("[SMOKE] raw event:", evt);
-    }
+    if (evt?.setupComplete) { logLine("[SMOKE] setupComplete"); return; }
+    logLine("[SMOKE] live: message", summarize(evt));
   }
 
-  function summarizeEvent(evt) {
-    if (!evt) return "null-event";
-    if (evt?.error) return `error: ${evt.error?.message || String(evt.error)}`;
-    if (evt?.type) return evt.type;
-    if (evt?.serverContent) return "serverContent";
-    return "unknown";
-  }
+  const summarize = (evt) =>
+    !evt ? "null-event" :
+    evt.error ? `error: ${evt.error?.message || String(evt.error)}` :
+    evt.type ? evt.type :
+    evt.serverContent ? "serverContent" : "unknown";
 
-  /**
-   * ───────────────────────────── Send Text ─────────────────────────────
-   */
+  /* ---------- send text ---------- */
   async function sendText(text) {
-    if (!liveRef.current) {
-      logLine("[SMOKE] no live session yet");
-      return;
-    }
+    if (!liveRef.current) return;
     setSending(true);
     try {
       const live = liveRef.current;
-
       if (typeof live.sendText === "function") {
         await live.sendText(text);
-        logLine("[SMOKE] sent text via sendText()");
       } else if (typeof live.sendClientContent === "function") {
-        await live.sendClientContent({
-          turns: [{ role: "user", parts: [{ text }]}],
-          turnComplete: true,
-        });
+        await live.sendClientContent({ turns: [{ role: "user", parts: [{ text }]}], turnComplete: true });
         logLine("[SMOKE] sent text via sendClientContent()");
-      } else if (live.conn?.readyState === 1 && typeof live.conn.send === "function") {
-        // ultra fallback
-        live.conn.send(JSON.stringify({
-          clientContent: {
-            turns: [{ role: "user", parts: [{ text }]}],
-            turnComplete: true,
-          }
-        }));
+      } else if (live.conn?.readyState === 1) {
+        live.conn.send(JSON.stringify({ clientContent: { turns: [{ role: "user", parts: [{ text }]}], turnComplete: true } }));
         logLine("[SMOKE] sent text via conn.send(JSON)");
-      } else {
-        logLine("[SMOKE] ❌ no text-send method available on this SDK build");
       }
-    } catch (err) {
-      logLine("[SMOKE] sendText failed:", err?.message || err);
-    } finally {
-      setSending(false);
-    }
+    } catch (e) { logLine("[SMOKE] sendText failed:", e?.message || e); }
+    finally { setSending(false); }
   }
 
-  /**
-   * ───────────────────────────── Mic Start/Stop ─────────────────────────────
-   */
+  /* ---------- mic: streaming + manual end turn ---------- */
   async function startMic() {
-    if (!liveRef.current) {
-      logLine("[SMOKE] no live session yet");
-      return;
-    }
+    if (!liveRef.current) return;
     try {
       const live = liveRef.current;
-
-      micRef.current = await navigator.mediaDevices.getUserMedia({
-        audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true,
-          sampleRate: 16000,
-        },
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true, channelCount: 1, sampleRate: 16000 },
       });
+      micRef.current = stream;
+
+      // simple VU meter
+      const ctx = ensureAudioContext();
+      const src = ctx.createMediaStreamSource(stream);
+      const analyser = ctx.createAnalyser();
+      analyser.fftSize = 1024;
+      src.connect(analyser);
+      analyserRef.current = analyser;
+      vuLoop();
 
       if (typeof live.sendInputAudioStream === "function") {
-        await live.sendInputAudioStream(micRef.current);
+        await live.sendInputAudioStream(stream);
         logLine("[SMOKE] mic streaming via sendInputAudioStream()");
       } else if (typeof live.sendAudioStream === "function") {
-        await live.sendAudioStream(micRef.current);
+        await live.sendAudioStream(stream);
         logLine("[SMOKE] mic streaming via sendAudioStream()");
       } else if (typeof live.sendRealtimeInput === "function") {
-        await live.sendRealtimeInput(micRef.current);
+        await live.sendRealtimeInput(stream); // NOTE: this often doesn't auto-commit a turn
         logLine("[SMOKE] mic streaming via sendRealtimeInput()");
       } else {
         stopMic();
@@ -350,206 +237,177 @@ export default function LiveSmokeTest() {
       }
 
       setMicOn(true);
-    } catch (err) {
-      logLine("[SMOKE] startMic failed:", err?.name || err?.message || err);
-      stopMic();
+    } catch (e) { logLine("[SMOKE] startMic failed:", e?.name || e?.message || e); stopMic(); }
+  }
+
+  function vuLoop() {
+    const analyser = analyserRef.current;
+    if (!analyser) return;
+    const data = new Uint8Array(analyser.fftSize);
+    analyser.getByteTimeDomainData(data);
+    let peak = 0;
+    for (let i = 0; i < data.length; i++) {
+      const v = Math.abs(data[i] - 128) / 128;
+      if (v > peak) peak = v;
     }
+    vuRef.current = peak;
+    if (micOn) requestAnimationFrame(vuLoop);
   }
 
   function stopMic() {
     try { micRef.current?.getTracks()?.forEach(t => t.stop()); } catch {}
     micRef.current = null;
+    analyserRef.current = null;
     setMicOn(false);
     logLine("[SMOKE] mic stopped");
   }
 
-  /**
-   * ───────────────────────────── Audio helpers ─────────────────────────────
-   */
+  // 🔑 Workaround for builds where streaming doesn't end a turn
+  function endTurn() {
+    stopMic();
+    const live = liveRef.current;
+    if (!live) return;
+    if (typeof live.sendClientContent === "function") {
+      live.sendClientContent({ turnComplete: true });
+      logLine("[SMOKE] sent turnComplete via sendClientContent()");
+    } else if (live.conn?.readyState === 1) {
+      live.conn.send(JSON.stringify({ clientContent: { turnComplete: true } }));
+      logLine("[SMOKE] sent turnComplete via conn.send(JSON)");
+    }
+  }
+
+  /* ---------- fallback: record a short clip and send inline ---------- */
+  async function record2sAndSend() {
+    if (!liveRef.current) return;
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mime = MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
+        ? "audio/webm;codecs=opus"
+        : MediaRecorder.isTypeSupported("audio/webm") ? "audio/webm" : "";
+
+      const rec = new MediaRecorder(stream, mime ? { mimeType: mime } : undefined);
+      const chunks = [];
+      rec.ondataavailable = (e) => e.data && chunks.push(e.data);
+      rec.start();
+      await waitMs(2000);
+      rec.stop();
+      await once(rec, "stop");
+      stream.getTracks().forEach(t => t.stop());
+      const blob = new Blob(chunks, { type: mime || chunks[0]?.type || "audio/webm" });
+      const b64 = await blobToBase64(blob);
+
+      // Send inline as one turn
+      const live = liveRef.current;
+      const part = { inlineData: { data: b64, mimeType: blob.type || "audio/webm" } };
+      if (typeof live.sendClientContent === "function") {
+        await live.sendClientContent({ turns: [{ role: "user", parts: [part] }], turnComplete: true });
+        logLine("[SMOKE] sent inline audio turn (webm/opus)");
+      } else if (live.conn?.readyState === 1) {
+        live.conn.send(JSON.stringify({ clientContent: { turns: [{ role: "user", parts: [part] }], turnComplete: true } }));
+        logLine("[SMOKE] sent inline audio turn via conn.send(JSON)");
+      }
+    } catch (e) { logLine("[SMOKE] record2sAndSend failed:", e?.message || e); }
+  }
+  const waitMs = (ms) => new Promise(r => setTimeout(r, ms));
+  const once = (em, ev) => new Promise(r => em.addEventListener(ev, r, { once: true }));
+  const blobToBase64 = (blob) => new Promise((resolve, reject) => {
+    const fr = new FileReader(); fr.onload = () => resolve(fr.result.split(",")[1]); fr.onerror = reject; fr.readAsDataURL(blob);
+  });
+
+  /* ---------- audio playback (sequenced) ---------- */
   function ensureAudioContext() {
     if (audioCtxRef.current) return audioCtxRef.current;
     const ctx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 24000 });
     audioCtxRef.current = ctx;
+    playHeadRef.current = ctx.currentTime;
     return ctx;
   }
-
-  function enableAudioNow() {
-    try {
-      const ctx = ensureAudioContext();
-      if (ctx.state === "suspended") {
-        ctx.resume().catch(() => {});
-      }
-      setAudioEnabled(true);
-      drainAudioQueue();
-      logLine("[SMOKE] audio enabled + queue drained");
-    } catch (e) {
-      logLine("[SMOKE] audio enable error:", e?.message || e);
-    }
+  function enableAudio() {
+    const ctx = ensureAudioContext();
+    if (ctx.state === "suspended") ctx.resume().catch(()=>{});
+    setAudioEnabled(true);
+    drainAudioQueue();
+    logLine("[SMOKE] audio enabled + queue drained");
   }
-
-  function queueOrPlayPCM(float32, sampleRate = 24000) {
+  function schedule(buf) {
+    const ctx = ensureAudioContext();
+    const when = Math.max(ctx.currentTime, playHeadRef.current);
+    const src = ctx.createBufferSource();
+    src.buffer = buf; src.connect(ctx.destination); src.start(when);
+    playHeadRef.current = when + buf.duration;
+  }
+  function queuePCM(float32, sr=24000) {
     const task = async () => {
       try {
         const ctx = ensureAudioContext();
-        const ch = 1;
-        const buf = ctx.createBuffer(ch, float32.length, sampleRate);
-        buf.getChannelData(0).set(float32);
-        const src = ctx.createBufferSource();
-        src.buffer = buf;
-        src.connect(ctx.destination);
-        src.start();
-        logLine(`[SMOKE] played PCM Float32 ${float32.length} samples @ ${sampleRate} Hz`);
-      } catch (e) {
-        logLine("[SMOKE] PCM play failed:", e?.message || e);
-      }
+        const b = ctx.createBuffer(1, float32.length, sr);
+        b.getChannelData(0).set(float32);
+        schedule(b);
+        logLine(`[SMOKE] played PCM Float32 ${float32.length} samples @ ${sr} Hz`);
+      } catch (e) { logLine("[SMOKE] PCM play failed:", e?.message || e); }
     };
-
-    if (!audioEnabled) {
-      audioQueueRef.current.push(task);
-    } else {
-      task();
+    if (!audioEnabled) audioQueueRef.current.push(task); else task();
+  }
+  function base64ToAB(b64) {
+    const bin = atob(b64), ab = new ArrayBuffer(bin.length), view = new Uint8Array(ab);
+    for (let i=0;i<bin.length;i++) view[i]=bin.charCodeAt(i); return ab;
+  }
+  function base64PCM16ToF32(b64) {
+    const bin = atob(b64), n = bin.length>>1, out = new Float32Array(n);
+    for (let i=0,j=0;i<n;i++,j+=2){ let v=(bin.charCodeAt(j+1)<<8)|bin.charCodeAt(j); if(v&0x8000)v-=0x10000; out[i]=v/32768; }
+    return out;
+  }
+  function queueInlineAudio({ data, mimeType = "" }) {
+    const lower = (mimeType||"").toLowerCase();
+    if (lower.startsWith("audio/pcm")) {
+      const m = /rate=([0-9]+)/i.exec(mimeType); const sr = m?parseInt(m[1],10):24000;
+      return queuePCM(base64PCM16ToF32(data), sr);
     }
-  }
-
-  function base64ToArrayBuffer(b64) {
-    const bin = atob(b64);
-    const len = bin.length;
-    const buf = new ArrayBuffer(len);
-    const view = new Uint8Array(buf);
-    for (let i = 0; i < len; i++) view[i] = bin.charCodeAt(i);
-    return buf;
-  }
-
-  function queueOrDecodeAndPlayBase64(b64) {
     const task = async () => {
       try {
         const ctx = ensureAudioContext();
-        const ab = base64ToArrayBuffer(b64);
-        const audioBuf = await ctx.decodeAudioData(ab);
-        const src = ctx.createBufferSource();
-        src.buffer = audioBuf;
-        src.connect(ctx.destination);
-        src.start();
-        logLine("[SMOKE] decoded & played inline audio");
-      } catch (e) {
-        logLine("[SMOKE] inline audio decode failed:", e?.message || e);
-      }
+        const buf = await ctx.decodeAudioData(base64ToAB(data));
+        schedule(buf);
+        logLine("[SMOKE] decoded & scheduled encoded audio");
+      } catch (e) { logLine("[SMOKE] inline audio decode failed:", e?.message || e); }
     };
-
-    if (!audioEnabled) {
-      audioQueueRef.current.push(task);
-    } else {
-      task();
-    }
+    if (!audioEnabled) audioQueueRef.current.push(task); else task();
   }
+  function drainAudioQueue() { const q = audioQueueRef.current; audioQueueRef.current=[]; q.forEach(fn=>fn&&fn()); }
 
-  function drainAudioQueue() {
-    const q = audioQueueRef.current;
-    audioQueueRef.current = [];
-    q.forEach((fn) => fn && fn());
-  }
-
-  /**
-   * ───────────────────────────── Close & Token actions ─────────────────────────────
-   */
-  async function closeLive() {
-    stopMic();
-    try { await liveRef.current?.close?.(); } catch {}
-    liveRef.current = null;
-    setConnected(false);
-    setStatus("closed");
-    logLine("[SMOKE] live closed");
-  }
-
-  function handleRefreshToken() {
-    clearCachedToken();
-    setToken(null);
-    setTokenSource("none");
-    setCachedAgeMs(null);
-    fetchAndConnectNewToken();
-  }
-
-  function handleClearCache() {
-    clearCachedToken();
-    setToken(null);
-    setTokenSource("none");
-    setCachedAgeMs(null);
-    logLine("[SMOKE] cleared cached token");
-  }
-
-  /**
-   * ───────────────────────────── UI ─────────────────────────────
-   */
+  /* ---------- UI ---------- */
+  const vu = Math.min(1, Math.max(0, vuRef.current || 0));
   return (
-    <div style={{ fontFamily: "Inter, system-ui, sans-serif", padding: 16, lineHeight: 1.4 }}>
-      <h2>Gemini Live — Smoke Test (with localStorage + VAD)</h2>
+    <div style={{ fontFamily: "Inter, system-ui, sans-serif", padding: 16 }}>
+      <h2>Gemini Live – Voice Test (manual turn + inline fallback)</h2>
 
-      <div style={{ marginBottom: 12 }}>
-        <div><b>Status:</b> {status}</div>
-        <div><b>Connected:</b> {String(connected)}</div>
-        <div>
-          <b>Token source:</b> {tokenSource}
-          {" · "}
-          <b>Token prefix:</b>{" "}
-          {token ? (String(token).slice(0, 12) + "…") : "(none)"}
-          {tokenSource === "cache" && (
-            <> {" · "} <b>Cache age:</b> {cachedAgeMs} ms</>
-          )}
-        </div>
-        <div><b>Last Event:</b> {lastEvent || "(none yet)"} </div>
+      <div style={{ marginBottom: 8 }}>
+        <b>Status:</b> {status} · <b>Connected:</b> {String(connected)} · <b>Mic:</b> {micOn ? "on" : "off"}
       </div>
 
-      <div style={{ display: "flex", gap: 8, marginBottom: 12, flexWrap: "wrap" }}>
-        <button onClick={enableAudioNow} disabled={audioEnabled}>
-          Enable Audio
-        </button>
-        <button onClick={() => sendText("Hello from smoke test — please respond briefly.")}
-                disabled={!connected || sending}>
-          Send Hello
-        </button>
-        <button onClick={startMic} disabled={!connected || micOn}>
-          Start Mic
-        </button>
-        <button onClick={stopMic} disabled={!micOn}>
-          Stop Mic
-        </button>
-        <button onClick={closeLive} disabled={!connected}>
-          Close
-        </button>
-        <button onClick={handleRefreshToken}>
-          Refresh Token (force new)
-        </button>
-        <button onClick={handleClearCache}>
-          Clear Cached Token
-        </button>
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 12 }}>
+        <button onClick={enableAudio} disabled={audioEnabled}>Enable Audio</button>
+        <input style={{ minWidth: 320, padding: 6 }} value={input} onChange={(e)=>setInput(e.target.value)} />
+        <button onClick={() => sendText(input)} disabled={!connected || sending}>Send Text</button>
+        <button onClick={startMic} disabled={!connected || micOn}>Start Mic</button>
+        <button onClick={endTurn} disabled={!micOn}>End Turn</button>
+        <button onClick={record2sAndSend} disabled={!connected}>Record 2s & Send</button>
+      </div>
+
+      <div style={{ marginBottom: 12, width: 160, height: 10, background: "#222", borderRadius: 5, overflow: "hidden" }}>
+        <div style={{ width: `${(vu*100).toFixed(0)}%`, height: "100%", background: vu>0.2 ? "#0bd" : "#555" }}/>
       </div>
 
       {textReplies.length > 0 && (
         <div style={{ marginBottom: 12 }}>
           <b>Text replies:</b>
-          <ul>
-            {textReplies.map((t, i) => <li key={i}>{t}</li>)}
-          </ul>
+          <ul>{textReplies.map((t,i)=><li key={i}>{t}</li>)}</ul>
         </div>
       )}
 
-      <pre style={{
-        background: "#111",
-        color: "#ddd",
-        padding: 12,
-        borderRadius: 8,
-        height: 320,
-        overflow: "auto",
-        fontSize: 12
-      }}>
+      <pre style={{ background:"#111", color:"#ddd", padding:12, borderRadius:8, height:360, overflow:"auto", fontSize:12 }}>
         {log.join("\n")}
       </pre>
-
-      <p style={{ marginTop: 12, color: "#666", maxWidth: 720 }}>
-        Workflow tip: <b>Enable Audio → Send Hello → Start Mic</b>. With
-        <code> turnDetection: SERVER_VAD </code> the model replies when you pause speaking.
-        Ephemeral tokens expire fast; this test caches them briefly and refreshes on failure.
-      </p>
     </div>
   );
 }
